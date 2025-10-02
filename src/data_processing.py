@@ -6,7 +6,6 @@ import matplotlib.pyplot as plt
 
 import datetime
 
-
 crash_frame = pd.read_csv("encoded_data_binary_encoding.csv")
 
 gdf = gpd.GeoDataFrame(
@@ -75,34 +74,18 @@ for _, crashes in joined_data.groupby("index_right"):
 
     # loop through each crash to add it to each timeslot
     for i, crash in crashes.iterrows():
-        # rolling_7_count = 0
-        # rolling_30_count = 0
-        # # loop through previous crashes
-        # for j in range(i - 1, -1, -1):
-        #     prevCrashDate = crashes.iloc[j]["Crash Date"]
-        #     daysPassed = (currentCrashDate - prevCrashDate).days
-        #     # use this if sattement to add it
-        #     if(daysPassed > 30):
-        #         break
-        #     # note that we don't use an else statement. This way if both are true, it'll be added to both
-        #     if(daysPassed <= 7):
-        #         rolling_7_count += 1
-        #     if(daysPassed <= 30):
-        #         rolling_30_count += 1
-        # # now, add it to the count
-        # crash["crash_c    ount_7d"] = rolling_7_count
-        # crash["crash_count_30d"] = rolling_30_count
-
-        
+        crashIndex = crash["Hour of Day"]
         # loop through each possible timeslot represneted by j, and put into the cells the value with the correct label based on if the time matches.
         for j in range(24):
-            crashIndex = crash["Hour of Day"]
             crashToAppend = crash.copy()
+            crashToAppend["Hour of Day"] = j
             # check if the timeslot matches. If so, put crash with label of 1, otherwise keep it as the 0
             if(crashIndex == j):
                 crashToAppend["label"] = 1
             final_cells.append(crashToAppend)
 
 exportedDf = pd.DataFrame(final_cells)
-exportedDf.drop('Crash Date', axis=1, inplace=True)
+
+exportedDf.drop(columns="Crash Date", inplace=True)
+
 exportedDf.to_csv("preprocessed_data.csv", index=False)
