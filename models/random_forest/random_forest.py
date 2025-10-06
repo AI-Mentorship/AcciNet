@@ -1,8 +1,9 @@
 import pandas as pd
 import matplotlib.pyplot as plt
 import seaborn as sns
+from src import commons
 
-from sklearn.model_selection import train_test_split
+
 from sklearn.metrics import accuracy_score, confusion_matrix, classification_report
 from sklearn.ensemble import RandomForestClassifier
 
@@ -10,28 +11,9 @@ class RandomForest:
 
     def __init__(self):
         raw_df = pd.read_csv('data/processed/preprocessed_data.csv').drop(['Latitude', 'Longitude'], axis=1)
-        self.df = self.sample_zero_rows(self, raw_df)
-        self.model_data = self.prepare_data(raw_df)  # will be a dictionary with training and testing data
+        self.df = commons.sample_zero_rows(self, raw_df)
+        self.model_data = commons.prepare_data(raw_df)  # will be a dictionary with training and testing data
         self.model = RandomForestClassifier(n_estimators=100, random_state=42)
-
-    """
-    Turn dataframe into X and y training and testing data
-    """
-    def prepare_data(self):
-        features = self.df.iloc[:, :-1].values
-        target = self.df.iloc[:, -1].values
-        X_train, X_test, y_train, y_test = train_test_split(features, target, test_size=0.2, random_state=42)
-        return {'X_train': X_train, 'X_test': X_test, 'y_train': y_train, 'y_test': y_test}
-
-
-    """
-    Get equal amounts zero and one rows
-    """
-    def sample_zero_rows(self, df):
-        rows_1 = df.loc[df['label'] == 1]
-        rows_0 = df.loc[df['label'] == 0]
-        rows_0 = rows_0.sample(n=len(rows_1), random_state=42)
-        return pd.concat([rows_0, rows_1], axis=0)
     
 
     """
