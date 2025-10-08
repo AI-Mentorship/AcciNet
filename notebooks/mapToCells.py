@@ -72,7 +72,7 @@ def processCell(theCrashes):
     crashes = crashes.sort_values(["Crash Date", "Hour of Day"], ascending=True).reset_index(drop=True)
 
     # loop through each crash to add it to each timeslot
-    with ThreadPoolExecutor(max_workers=4) as executor:
+    with ThreadPoolExecutor(max_workers=6) as executor:
         # group by when they go to similar cells
         futures = [executor.submit(processCrash, crash, final_cells, numWithoutData, lock, i, crashes, apiCrashMapping, apiLock) for i, crash in crashes.iterrows()]
 
