@@ -53,10 +53,12 @@ def processCrash(crash, final_cells, numWithoutData, lock, i, crashes, apiCrashM
             final_cells.append(crashToAppend)
 
 def processCell(theCrashes):
+    cellIndex = theCrashes.iloc[0]["index_right"]
+    if(cellIndex >= 12300):
+        return (f"NOT APPLICABLE", 0, 0)
     final_cells = []
     numWithoutData = [0]
     lock = threading.Lock()
-    cellIndex = theCrashes.iloc[0]["index_right"]
     crashes = theCrashes.drop(columns=["index_right", "Crash ID", "geometry"])
 
     crashes["crash_count_7d"] = 0
@@ -72,7 +74,7 @@ def processCell(theCrashes):
     crashes = crashes.sort_values(["Crash Date", "Hour of Day"], ascending=True).reset_index(drop=True)
 
     # loop through each crash to add it to each timeslot
-    with ThreadPoolExecutor(max_workers=6) as executor:
+    with ThreadPoolExecutor(max_workers=5) as executor:
         # group by when they go to similar cells
         futures = [executor.submit(processCrash, crash, final_cells, numWithoutData, lock, i, crashes, apiCrashMapping, apiLock) for i, crash in crashes.iterrows()]
 
