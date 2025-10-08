@@ -52,9 +52,9 @@ def processCrash(crash, final_cells, numWithoutData, lock, i, crashes, apiCrashM
         with lock:
             final_cells.append(crashToAppend)
 
-def processCell(theCrashes):
+def processCell(theCrashes, lowerBound, upperBound):
     cellIndex = theCrashes.iloc[0]["index_right"]
-    if(cellIndex >= 12300):
+    if(cellIndex >= upperBound or cellIndex < lowerBound):
         return (f"NOT APPLICABLE", 0, 0)
     final_cells = []
     numWithoutData = [0]
