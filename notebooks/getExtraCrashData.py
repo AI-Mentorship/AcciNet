@@ -1,8 +1,9 @@
 import osmnx as ox
 import math
-from shapely.ops import transform
 from shapely.geometry import Point
-import pyproj
+import time
+import requests
+
 
 def getAngle(coord1, coord2):
     ySide = coord2[1] - coord1[1]
@@ -34,12 +35,20 @@ def getExtraData(latitude, longitude):
 
     G = None
 
-    try:
-        G = ox.graph_from_point(point, dist=300, network_type="drive")
-        if len(G.edges) == 0:
+    while(True):
+        try:
+            G = ox.graph_from_point(point, dist=300, network_type="drive")
+            if len(G.edges) == 0:
+                return (-1, -1)
+            break
+        except ValueError:
             return (-1, -1)
-    except ValueError:
-        return (-1, -1)
+        except (requests.exceptions.ConnectionError,
+                    requests.exceptions.Timeout,
+                    requests.exceptions.HTTPError,
+                    OSError):
+            time.sleep(60)
+
     u, v, k = ox.distance.nearest_edges(G, X=point[1], Y=point[0])
     edge = G.edges[u, v, k]
 
