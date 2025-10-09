@@ -1,3 +1,6 @@
+__pycache__/
+.vscode/
+*.csv
 */preprocessed_data.csv
 data/final/preprocessed_data.csv
 /.history
