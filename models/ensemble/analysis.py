@@ -38,7 +38,7 @@ def main():
 
     # Run ensemble predictions
     X_train, X_test, y_train, y_test = load_and_split_data(file_path)
-    y_pred_soft, y_pred_hard, y_test = ensemble_predictions(models, file_path, X_train, X_test, y_train, y_test)
+    y_pred_soft, y_pred_hard = ensemble_predictions(models, X_train, X_test, y_train, y_test)
 
     # Evaluate predictions
     evaluate_predictions(y_test, y_pred_soft, y_pred_hard)
