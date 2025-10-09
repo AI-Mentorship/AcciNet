@@ -17,6 +17,15 @@ def getAngle(coord1, coord2):
         rawAngle = 180 + math.degrees(math.atan(ySide / xSide))
         return rawAngle
 
+def normalizeAngle(coord1, coord2, coord3):
+    angle1 = getAngle(coord1, coord2)
+    angle2 = getAngle(coord2, coord3)
+
+    finalCurve = max(angle1, angle2) - min(angle1, angle2)
+    if(finalCurve > 180):
+        finalCurve = min(angle1, angle2) + 360 - max(angle1, angle2)
+
+    return finalCurve
 
 # COPILOT STOP WRITING MY CODE FOR ME, HOW DO I DIASBLE THIS FEATURE IT'S TOO PEAK, IT AUTOMATICALLY WROTE THIS
 # FUNCTION FOR ME
@@ -68,24 +77,18 @@ def getExtraData(latitude, longitude):
 
     if(len(coords) < 3):
         raise Exception("Not enough points in geometry to calculate curvature")
-    bestIndex = 0
-    smallestDist = float("inf")
-    for i in range(len(coords)-1):
-        current = coords[i]
-        currentDist = ((current[0]-projectedPoint.x)**2 + (current[1]-projectedPoint.y)**2)**0.5
-        if(currentDist < smallestDist):
-            bestIndex = i
-            smallestDist = currentDist
+    # for i in range(len(coords)-1):
+    #     current = coords[i]
+    #     currentDist = ((current[0]-projectedPoint.x)**2 + (current[1]-projectedPoint.y)**2)**0.5
+    #     if(currentDist < smallestDist):
+    #         bestIndex = i
+    #         smallestDist = currentDist
 
-    (coord1, coord2, coord3) = getThreePoints(coords, bestIndex)
-
-    angle1 = getAngle(coord1, coord2)
-    angle2 = getAngle(coord2, coord3)
-
-    finalCurve = max(angle1, angle2) - min(angle1, angle2)
-    if(finalCurve > 180):
-        finalCurve = min(angle1, angle2) + 360 - max(angle1, angle2)
+    finalCurve = 0
+    numIterations = len(coords) - 2
+    for i in range(0, numIterations, 1):
+        finalCurve += normalizeAngle(coords[i], coords[i + 1], coords[i + 2]) / numIterations
 
     return (finalCurve, lanes)
 
-# print(getExtraData(32.793136,-96.803812))
+print(getExtraData(32.793136,-96.803812))
