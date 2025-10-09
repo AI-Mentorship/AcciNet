@@ -87,3 +87,5 @@ def getExtraData(latitude, longitude):
         finalCurve = min(angle1, angle2) + 360 - max(angle1, angle2)
 
     return (finalCurve, lanes)
+
+# print(getExtraData(32.793136,-96.803812))
