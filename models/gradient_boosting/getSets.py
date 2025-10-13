@@ -2,7 +2,7 @@ import pandas as pd
 from sklearn.model_selection import train_test_split
 
 # 1. Load dataset
-df = pd.read_csv("data/final/preprocessed_data.csv")
+df = pd.read_csv("data/final/true_preprocessed_data.csv")
 
 df0 = df[df["label"] == 0]
 df1 = df[df["label"] == 1]
