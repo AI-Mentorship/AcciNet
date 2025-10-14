@@ -1,1 +1,0 @@
-Num failures was: 623 when total was 2069.0
