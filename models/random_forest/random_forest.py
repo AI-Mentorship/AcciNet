@@ -3,7 +3,6 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 from src import commons
 
-
 from sklearn.metrics import accuracy_score, confusion_matrix, classification_report
 from sklearn.ensemble import RandomForestClassifier
 
@@ -14,7 +13,7 @@ class RandomForest:
         self.df = commons.sample_zero_rows(self, raw_df)
         self.model_data = commons.prepare_data(raw_df)  # will be a dictionary with training and testing data
         self.model = RandomForestClassifier(n_estimators=100, random_state=42)
-    
+
 
     """
     Train the model
