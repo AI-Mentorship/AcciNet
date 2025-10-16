@@ -1,8 +1,31 @@
 @import "tailwindcss";
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --map-bg: #f8fafc;
+  /* pale gray background */
+  --map-surface: #ffffff;
+  --map-border-color: #d1d5db;
+  --map-accent: #3b82f6;
+  /* soft blue accent */
+  --map-accent-muted: #10b981;
+  /* gentle green for highlights */
+  --map-text: #1f2937;
+  /* dark slate */
+  --map-secondary-text: #4b5563;
+}
+.dark {
+  --map-bg: #0b0b0c;
+  /* near-black base */
+  --map-surface: #18181b;
+  /* elevated elements (popups, controls) */
+  --map-border-color: #2f2f33;
+  --map-accent: #ef4444;
+  /* bright red highlight (Tailwind's red-500) */
+  --map-accent-muted: #7f1d1d;
+  /* deeper red for hover/fill */
+  --map-text: #f4f4f5;
+  /* off-white text */
+  --map-secondary-text: #d4d4d8;
 }
 
 @theme inline {
@@ -11,6 +34,7 @@
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
 }
+
 
 @media (prefers-color-scheme: dark) {
   :root {
@@ -23,4 +47,25 @@ body {
   background: var(--background);
   color: var(--foreground);
   font-family: Arial, Helvetica, sans-serif;
+}
+
+/* Map overlay helpers */
+.map-container {
+  position: relative; /* positioning context for overlay */
+  width: 100vw;
+  height: 100vh;
+}
+
+.map-overlay {
+  position: absolute;
+  top: 1rem;
+  right: 1rem;
+  z-index: 10000; /* ensure it sits above Leaflet's panes */
+  pointer-events: auto;
+  display: flex;
+  gap: 0.5rem;
+}
+
+.map-overlay > * {
+  pointer-events: auto;
 }
