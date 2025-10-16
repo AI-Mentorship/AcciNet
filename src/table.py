@@ -7,7 +7,7 @@ def load_and_split_data(file_path):
     
 
     # Remove Latitude and Longitude (Should be done elsewhere!!!)
-    df = df.drop(columns=["Latitude", "Longitude"])
+    # df = df.drop(columns=["Latitude", "Longitude"])
     df_0 = df[df["label"] == 0]
     df_1 = df[df["label"] == 1]
 

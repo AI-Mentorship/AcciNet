@@ -1,5 +1,5 @@
 from sklearn.metrics import classification_report, confusion_matrix, roc_auc_score, log_loss
-from models.gradient_boosting.shyam.model import GradientBoosting
+from models.random_forest.model import RandomForest
 from src.table import load_and_split_data
 
 def evaluate_predictions(y_test, y_pred):
@@ -26,7 +26,7 @@ def main():
 
     X_train, X_test, y_train, y_test = load_and_split_data(file_path)
 
-    model = GradientBoosting()
+    model = RandomForest()
     model.train(X_train, y_train)
     y_pred = model.predict(X_test)
 
