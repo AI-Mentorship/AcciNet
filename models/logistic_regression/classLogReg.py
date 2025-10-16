@@ -43,7 +43,7 @@ class LogisticModel:
         
 
     def predict(self):
-        return self.model.predict_proba(self.model_data['X_test'])[:, 1]
+        return self.model.predict(self.model_data['X_test'])
 
     def display_stats(self, y_pred):
         accuracy = accuracy_score(self.model_data['y_test'],y_pred)
@@ -52,32 +52,17 @@ class LogisticModel:
         f1 = f1_score(self.model_data['y_test'], y_pred)
         #cm = confusion_matrix(self.model_data['y_test'], y_pred)
 
+        self.model_data["y_test"]
+
         print("\n--- Model Evaluation ---")
         print(f"Accuracy:  {accuracy:.2f}")
         print(f"Precision: {precision:.2f}")
         print(f"Recall:    {recall:.2f}")
         print(f"F1 Score:  {f1:.2f}")
         print("\nClassification Report:\n", classification_report(self.model_data['y_test'], y_pred))
-        print("\nClassification Report:\n", classification_report(y_test, y_pred))
+        print("\nClassification Report:\n", classification_report(self.model_data['y_test'], y_pred))
 
 x = LogisticModel()
 x.train()
 y_pred=x.predict()
 x.display_stats(y_pred)
-
-
-
-#ROC Curve
-fpr, tpr, thresholds = roc_curve(y_test, y_prob)
-roc_auc = auc(fpr, tpr)
-
-
-plt.figure(figsize=(8, 6))
-plt.plot(fpr, tpr, color='blue', lw=2,
-        label=f'ROC Curve (AUC = {roc_auc:.2f})')
-plt.plot([0, 1], [0, 1], color='red', lw=2, linestyle='--', label='Random Baseline')
-plt.xlabel('False Positive Rate')
-plt.ylabel('True Positive Rate')
-plt.title('ROC Curve: Logistic Regression')
-plt.legend(loc="lower right")
-plt.show()
