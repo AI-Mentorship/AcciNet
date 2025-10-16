@@ -1,6 +1,9 @@
 from sklearn.metrics import classification_report, confusion_matrix, roc_auc_score, log_loss
-from ensemble import ensemble_predictions  
-from table import load_and_split_data
+from ensemble import ensemble_predictions, weighted_ensemble_predictions
+from src.table import load_and_split_data
+from models.random_forest.model import RandomForest
+from models.extra_trees.model import ExtraTrees
+from models.gradient_boosting.shyam.model import GradientBoosting
 
 def evaluate_predictions(y_test, y_pred_soft, y_pred_hard):
 
@@ -30,15 +33,18 @@ def evaluate_predictions(y_test, y_pred_soft, y_pred_hard):
 
 def main():
     # Predefined CSV file path
-    file_path = ''
+    file_path = './data/final/true_preprocessed_data.csv'
 
     # Define models 
-    models = [
+    models = [RandomForest(), ExtraTrees(), GradientBoosting()
     ]
+
+    weights = [0.05, 0.05, 0.9]
 
     # Run ensemble predictions
     X_train, X_test, y_train, y_test = load_and_split_data(file_path)
-    y_pred_soft, y_pred_hard = ensemble_predictions(models, X_train, X_test, y_train, y_test)
+    # y_pred_soft, y_pred_hard = ensemble_predictions(models, X_train, X_test, y_train)
+    y_pred_soft, y_pred_hard = weighted_ensemble_predictions(models, weights, X_train, X_test, y_train)
 
     # Evaluate predictions
     evaluate_predictions(y_test, y_pred_soft, y_pred_hard)
