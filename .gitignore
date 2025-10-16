@@ -1,3 +1,6 @@
 __pycache__/
 .vscode/
 /.history
+*pycache*
+cache/
+notebooks/cache

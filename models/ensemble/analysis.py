@@ -4,6 +4,7 @@ from src.table import load_and_split_data
 from models.random_forest.model import RandomForest
 from models.extra_trees.model import ExtraTrees
 from models.gradient_boosting.shyam.model import GradientBoosting
+from models.logistic_regression.model import LogisticModel
 
 def evaluate_predictions(y_test, y_pred_soft, y_pred_hard):
 
@@ -36,10 +37,10 @@ def main():
     file_path = './data/final/true_preprocessed_data.csv'
 
     # Define models 
-    models = [RandomForest(), ExtraTrees(), GradientBoosting()
+    models = [RandomForest(), ExtraTrees(), GradientBoosting(), LogisticModel()
     ]
 
-    weights = [0.05, 0.05, 0.9]
+    weights = [0.25, 0.25, 0.25, 0.25]  
 
     # Run ensemble predictions
     X_train, X_test, y_train, y_test = load_and_split_data(file_path)
