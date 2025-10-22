@@ -1,6 +1,14 @@
 from sklearn.metrics import classification_report, confusion_matrix, roc_auc_score,accuracy_score
 import pickle
-from getSets import getTestData, getListFeatures
+
+import sys
+import os
+
+# Add project root to sys.path
+sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(__file__))))
+
+from src.table import getTestData, getListFeatures
+
 import pandas as pd
 import matplotlib.pyplot as plt
 with open("models/gradient_boosting/gradient_boosting_model.pkl", "rb") as f:
