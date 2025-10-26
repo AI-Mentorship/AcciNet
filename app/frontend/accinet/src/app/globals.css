@@ -1,4 +1,6 @@
 @import "tailwindcss";
+import { Quicksand } from "next/font/google";
+
 
 :root {
   --map-bg: #f8fafc;
