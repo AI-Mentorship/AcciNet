@@ -1,5 +1,4 @@
 @import "tailwindcss";
-import { Quicksand } from "next/font/google";
 
 
 :root {
@@ -30,11 +29,20 @@ import { Quicksand } from "next/font/google";
   --map-secondary-text: #d4d4d8;
 }
 
-@theme inline {
+/* Expose color and font CSS variables. We map Tailwind's
+   sans font variable to the Quicksand variable injected by Next's
+   font loader (see `layout.tsx` where `Quicksand({ variable: "--font-quicksand" })` is applied).
+   This makes Tailwind utilities (e.g. `font-semibold`, `font-bold`) work
+   with Quicksand's available weights. */
+:root {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  /* Primary UI sans font used by Tailwind via tailwind.config.js */
+  --font-sans: var(--font-quicksand, ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Apple Color Emoji", "Segoe UI Emoji");
+  /* Monospace fallback */
+  --font-mono: ui-monospace, SFMono-Regular, Menlo, Monaco, "Roboto Mono", "Segoe UI Mono", "Helvetica Neue", monospace;
+  /* compatibility alias used by some Next internal styles */
+  --font-stack-sans: var(--font-sans);
 }
 
 
@@ -45,10 +53,13 @@ import { Quicksand } from "next/font/google";
   }
 }
 
+/* Use the Quicksand font provided by Next's font loader when the
+   `--font-quicksand` CSS variable is injected (see `layout.tsx`).
+   Fall back to system fonts if the variable isn't present. */
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: var(--font-quicksand, Arial, Helvetica, sans-serif);
 }
 
 /* Map overlay helpers */
