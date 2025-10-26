@@ -31,18 +31,19 @@ export default function Page() {
   const mapRef = useRef<L.Map | null>(null);
   const tileLayerRef = useRef<L.TileLayer | null>(null);
 
-  const controlDivRef = useRef<HTMLDivElement | null>(null);
+  const searchDivRef = useRef<HTMLDivElement | null>(null);//ref for search bar element
+  const controlDivRef = useRef<HTMLDivElement | null>(null);//ref for theme toggle element
   const [, forceRender] = useState(0);
 
   const { isDark } = useTheme();
   const { location, error, loading } = useCurrentLocation(); // custom hook
 
   // 1) Initialize map and controls
-  useEffect(() => {
-    if (!mapContainerRef.current) return;
+  useEffect(() => {//useeffect runs after component/page render
+    if (!mapContainerRef.current) return;//check if actually refers to an html element
 
     const map = L.map(mapContainerRef.current, {
-      zoomControl: true,
+      zoomControl: false,
       attributionControl: true,
     }).setView([32.99, -96.75], 13);
 
@@ -52,13 +53,33 @@ export default function Page() {
     mapRef.current = map;
     tileLayerRef.current = base;
 
-    // Add control container for the theme button
-    const ThemeToggleControl = L.Control.extend({
-      options: { position: "topright" as L.ControlPosition },
+    //Add search bar in map
+    const SearchControl= L.Control.extend({
+      options: {position:"topleft" as L.ControlPosition},
       onAdd() {
         const container = L.DomUtil.create(
           "div",
-          "leaflet-bar leaflet-control leaflet-control-custom"
+          "leaflet-control leaflet-control-custom"
+        );
+        L.DomEvent.disableClickPropagation(container);
+        L.DomEvent.disableClickPropagation(container);
+        searchDivRef.current = container
+        forceRender((x)=>x+1);
+        return container;
+      },
+      onRemove(){
+        searchDivRef.current =null;
+        forceRender((x) => x + 1);
+      },
+    });
+
+    // Add control container for the theme button
+    const ThemeToggleControl = L.Control.extend({
+      options: { position: "bottomright" as L.ControlPosition },
+      onAdd() {
+        const container = L.DomUtil.create(
+          "div",
+          " leaflet-control leaflet-control-custom"
         );
         L.DomEvent.disableClickPropagation(container);
         L.DomEvent.disableScrollPropagation(container);
@@ -70,13 +91,17 @@ export default function Page() {
         controlDivRef.current = null;
         forceRender((x) => x + 1);
       },
+
     });
 
-    const ctrl = new ThemeToggleControl();
-    ctrl.addTo(map);
+    const toggleCtrl = new ThemeToggleControl();
+    const searchCtrl = new SearchControl();
+    toggleCtrl.addTo(map);
+    searchCtrl.addTo(map);
 
     return () => {
-      ctrl.remove();
+      searchCtrl.remove();
+      toggleCtrl.remove();
       map.remove();
       mapRef.current = null;
       tileLayerRef.current = null;
@@ -113,19 +138,13 @@ export default function Page() {
 
   return (
     <div className="flex h-screen w-screen overflow-hidden">
-      {/* Sidebar */}
-      <aside className="w-60 bg-white z-10 p-4 overflow-y-auto">
-        <SearchBox />
-        {loading && <p className="text-sm text-gray-500">Finding your location...</p>}
-        {error && <p className="text-sm text-red-500">Error: {error}</p>}
-      </aside>
+
 
       {/* Map */}
-      <div className="flex-1 relative">
+      <div className="flex-1 relative" id="root">
         <div ref={mapContainerRef} className="absolute inset-0" />
-        {controlDivRef.current
-          ? createPortal(<ThemeButton />, controlDivRef.current)
-          : null}
+        {controlDivRef.current ? createPortal(<ThemeButton />, controlDivRef.current): null}
+        {searchDivRef.current?createPortal(<SearchBox/>,searchDivRef.current):null}
       </div>
     </div>
   );
