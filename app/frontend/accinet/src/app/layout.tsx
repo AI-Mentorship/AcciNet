@@ -1,5 +1,4 @@
 import type { Metadata } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import { ThemeProvider } from "./hooks/useTheme";
 import { Quicksand } from "next/font/google";
@@ -21,8 +20,8 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" className={quicksand.variable} >
-      <body className="font-sans" >
+    <html lang="en" className={quicksand.variable}>
+      <body>
         <ThemeProvider>{children}</ThemeProvider>
       </body>
     </html>
