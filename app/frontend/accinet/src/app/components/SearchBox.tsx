@@ -17,7 +17,7 @@ export default function SearchBox() {
         setFormattedAddress(place.formattedAddress ?? '');
     };
     const countries = ['US'];
-
+    
     return (
         <div>
             <APILoader apiKey={process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY} solutionChannel="GMP_GCC_placepicker_v1" />
