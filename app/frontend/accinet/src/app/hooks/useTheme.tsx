@@ -1,12 +1,18 @@
 "use client";
-import { createContext, useContext, useEffect, useMemo, useState } from "react";
+import React, { createContext, useContext, useEffect, useMemo, useState } from "react";
 
 type ThemeCtx = {
   isDark: boolean;
   toggle: () => void;
   setDark: (v: boolean) => void;
 };
+type DestLocation = {
+  lat?: number;
+  lng?: number;
+  formattedAddress?: string;
+}
 
+const DestContext = createContext<DestLocation | null>(null);
 const ThemeContext = createContext<ThemeCtx | null>(null);
 
 export function ThemeProvider({ children }: { children: React.ReactNode }) {
@@ -32,6 +38,21 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
 
   return <ThemeContext.Provider value={value}>{children}</ThemeContext.Provider>;
 }
+/*
+export function DestProvider({children}:{children:React.ReactNode}){
+  const [dest, setDest] = useState<DestLocation | null>(null);
+  const value = useMemo(
+    () => ({
+      dest,
+      setDest: (v: DestLocation | null) => setDest(v),
+    }),
+    [dest]
+  );
+
+  return <DestContext.Provider value={value}>{children}</DestContext.Provider>;
+
+}
+  */
 
 export default function useTheme() {
   const ctx = useContext(ThemeContext);
