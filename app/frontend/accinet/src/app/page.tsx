@@ -8,14 +8,14 @@ import useTheme from "./hooks/useTheme";
 import ThemeButton from "./components/ThemeButton";
 import SearchBox from "./components/SearchBox";
 import useCurrentLocation from "./hooks/getLocation";
-import { MapPin } from 'lucide-react';
 import markerIcon2x from "leaflet/dist/images/marker-icon-2x.png";
 import markerIcon from "leaflet/dist/images/marker-icon.png";
 import markerShadow from "leaflet/dist/images/marker-shadow.png";
+import { RouteParameters, RouteDetails, getRoute } from "./lib/route";
+import polyline from "@mapbox/polyline";
 
-// Fix for missing default marker icons in Next.js/Vite
+
 delete (L.Icon.Default.prototype as any)._getIconUrl;
-
 L.Icon.Default.mergeOptions({
   iconRetinaUrl: markerIcon2x.src ?? markerIcon2x,
   iconUrl: markerIcon.src ?? markerIcon,
@@ -29,58 +29,81 @@ const ATTRIBUTION =
 export default function Page() {
   const mapContainerRef = useRef<HTMLDivElement | null>(null);
   const mapRef = useRef<L.Map | null>(null);
-  const tileLayerRef = useRef<L.TileLayer | null>(null);
+  const routeLayerRef = useRef<L.Polyline | null>(null);
 
-  const searchDivRef = useRef<HTMLDivElement | null>(null);//ref for search bar element
-  const controlDivRef = useRef<HTMLDivElement | null>(null);//ref for theme toggle element
+  const searchDivRef = useRef<HTMLDivElement | null>(null);
+  const controlDivRef = useRef<HTMLDivElement | null>(null);
   const [, forceRender] = useState(0);
 
   const { isDark } = useTheme();
-  const { location, error, loading } = useCurrentLocation(); // custom hook
+  const { location } = useCurrentLocation();
 
-  // 1) Initialize map and controls
-  useEffect(() => {//useeffect runs after component/page render
-    if (!mapContainerRef.current) return;//check if actually refers to an html element
+  // 🔹 Keep origin string EXACTLY "lat,lng"
+  const handleRouteSearch = async (destinationAddress: string) => {
+    if (!location || !destinationAddress) {
+      console.error("Missing origin or destination for route");
+      return;
+    }
+
+    const params: RouteParameters = {
+      origin: `${location.lat},${location.lng}`, // ← preserved string format
+      destination: destinationAddress,           // already a string
+      mode: "driving",
+    };
+
+    try {
+      const result: RouteDetails = await getRoute(params);
+
+      const coords = polyline.decode(result.polyline) as [number, number][];
+      const latlngs: [number, number][] = coords.map(([lat, lng]: [number, number]) => [lat, lng]);
+
+
+      const map = mapRef.current;
+      if (!map) return;
+
+      if (routeLayerRef.current) {
+        map.removeLayer(routeLayerRef.current);
+      }
+
+      const routeLine = L.polyline(latlngs, { weight: 5, opacity: 0.8 }).addTo(map);
+      routeLayerRef.current = routeLine;
+
+      map.fitBounds(routeLine.getBounds(), { padding: [24, 24] });
+    } catch (err) {
+      console.error("Error fetching route:", err);
+    }
+  };
+
+  useEffect(() => {
+    if (!mapContainerRef.current) return;
 
     const map = L.map(mapContainerRef.current, {
       zoomControl: false,
       attributionControl: true,
     }).setView([32.99, -96.75], 13);
 
-    const base = L.tileLayer(TILE_URL, { maxZoom: 19, attribution: ATTRIBUTION });
-    base.addTo(map);
-
+    L.tileLayer(TILE_URL, { maxZoom: 19, attribution: ATTRIBUTION }).addTo(map);
     mapRef.current = map;
-    tileLayerRef.current = base;
 
-    //Add search bar in map
-    const SearchControl= L.Control.extend({
-      options: {position:"topleft" as L.ControlPosition},
+    const SearchControl = L.Control.extend({
+      options: { position: "topleft" as L.ControlPosition },
       onAdd() {
-        const container = L.DomUtil.create(
-          "div",
-          "leaflet-control leaflet-control-custom"
-        );
+        const container = L.DomUtil.create("div", "leaflet-control leaflet-control-custom");
         L.DomEvent.disableClickPropagation(container);
-        L.DomEvent.disableClickPropagation(container);
-        searchDivRef.current = container
-        forceRender((x)=>x+1);
+        searchDivRef.current = container;
+        forceRender((x) => x + 1);
         return container;
       },
-      onRemove(){
-        searchDivRef.current =null;
+      onRemove() {
+        searchDivRef.current = null;
         forceRender((x) => x + 1);
       },
     });
 
-    // Add control container for the theme button
     const ThemeToggleControl = L.Control.extend({
       options: { position: "bottomright" as L.ControlPosition },
       onAdd() {
-        const container = L.DomUtil.create(
-          "div",
-          " leaflet-control leaflet-control-custom"
-        );
+        const container = L.DomUtil.create("div", "leaflet-control leaflet-control-custom");
         L.DomEvent.disableClickPropagation(container);
         L.DomEvent.disableScrollPropagation(container);
         controlDivRef.current = container;
@@ -91,7 +114,6 @@ export default function Page() {
         controlDivRef.current = null;
         forceRender((x) => x + 1);
       },
-
     });
 
     const toggleCtrl = new ThemeToggleControl();
@@ -104,16 +126,14 @@ export default function Page() {
       toggleCtrl.remove();
       map.remove();
       mapRef.current = null;
-      tileLayerRef.current = null;
       controlDivRef.current = null;
+      searchDivRef.current = null;
     };
   }, []);
 
-  // 2) Apply/remove dark mode filter
   useEffect(() => {
     const map = mapRef.current;
     if (!map) return;
-
     const tilePane = map.getPanes().tilePane as HTMLDivElement | undefined;
     if (!tilePane) return;
 
@@ -122,14 +142,12 @@ export default function Page() {
       : "none";
   }, [isDark]);
 
-  // 3) Pan/fly to user location once determined
   useEffect(() => {
     const map = mapRef.current;
     if (!map || !location) return;
 
-    map.flyTo([location.lat, location.lng], 14, { duration: 1.5 });
-
     const marker = L.marker([location.lat, location.lng]).addTo(map);
+    map.flyTo([location.lat, location.lng], 14, { duration: 1.5 });
 
     return () => {
       map.removeLayer(marker);
@@ -138,13 +156,11 @@ export default function Page() {
 
   return (
     <div className="flex h-screen w-screen overflow-hidden">
-
-
-      {/* Map */}
-      <div className="flex-1 relative" id="root">
+      <div className="flex-1 relative">
         <div ref={mapContainerRef} className="absolute inset-0" />
-        {controlDivRef.current ? createPortal(<ThemeButton />, controlDivRef.current): null}
-        {searchDivRef.current?createPortal(<SearchBox/>,searchDivRef.current):null}
+        {controlDivRef.current && createPortal(<ThemeButton />, controlDivRef.current)}
+        {searchDivRef.current &&
+          createPortal(<SearchBox onSearch={handleRouteSearch} />, searchDivRef.current)}
       </div>
     </div>
   );
