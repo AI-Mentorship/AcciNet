@@ -4,3 +4,4 @@ __pycache__/
 *pycache*
 cache/
 notebooks/cache
+data/processed/crash_data2022-2024.csv
