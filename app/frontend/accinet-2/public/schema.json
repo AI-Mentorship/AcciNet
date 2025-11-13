@@ -1,0 +1,66 @@
+{
+    "$schema": "http://json-schema.org/draft-07/schema#",
+    "title": "Historical Crash Density Cells (column-oriented)",
+    "description": "Column-oriented dataset where each property stores values for a specific attribute keyed by the stringified row index.",
+    "type": "object",
+    "required": [
+        "cell_id",
+        "cell_center_lat",
+        "cell_center_lon",
+        "crash_density",
+        "year"
+    ],
+    "additionalProperties": true,
+    "properties": {
+        "cell_id": {
+            "type": "object",
+            "description": "Unique identifier for the H3 grid cell.",
+            "patternProperties": {
+                "^\\d+$": {
+                    "type": "integer"
+                }
+            },
+            "additionalProperties": true
+        },
+        "cell_center_lat": {
+            "type": "object",
+            "description": "Latitude (decimal degrees) of the cell centroid.",
+            "patternProperties": {
+                "^\\d+$": {
+                    "type": "number"
+                }
+            },
+            "additionalProperties": true
+        },
+        "cell_center_lon": {
+            "type": "object",
+            "description": "Longitude (decimal degrees) of the cell centroid.",
+            "patternProperties": {
+                "^\\d+$": {
+                    "type": "number"
+                }
+            },
+            "additionalProperties": true
+        },
+        "crash_density": {
+            "type": "object",
+            "description": "Crash density value associated with the cell.",
+            "patternProperties": {
+                "^\\d+$": {
+                    "type": "number"
+                }
+            },
+            "additionalProperties": true
+        },
+        "year": {
+            "type": "object",
+            "description": "Calendar year of the crash-density measurement.",
+            "patternProperties": {
+                "^\\d+$": {
+                    "type": "integer"
+                }
+            },
+            "additionalProperties": true
+        }
+    }
+}
