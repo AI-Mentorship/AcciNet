@@ -5,11 +5,16 @@ __pycache__/
 cache/
 notebooks/cache
 data/processed/crash_data2022-2024.csv
-<<<<<<< HEAD
 *texas_edges.parquet
 *texas_nodes.parquet
 data/processed/dataset_v3.csv
 data/processed/PotentialCSV.csv
-=======
 *.parquet
->>>>>>> 9d6a451d13211a74de66aeda9c0c76c3f34897e0
+__pycache__/
+.vscode/
+/.history
+*pycache*
+cache/
+notebooks/cache
+data/processed/crash_data2022-2024.csv
+*.parquet
