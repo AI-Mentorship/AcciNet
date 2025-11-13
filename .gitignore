@@ -1,8 +1,0 @@
-__pycache__/
-.vscode/
-/.history
-*pycache*
-cache/
-notebooks/cache
-data/processed/crash_data2022-2024.csv
-*.parquet
