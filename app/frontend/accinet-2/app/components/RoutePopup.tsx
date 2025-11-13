@@ -93,7 +93,7 @@ export default function RoutePopup({ condition, position, onClose }: RoutePopupP
   return (
     <div
       ref={popupRef}
-      className="absolute z-50 bg-zinc-900 border border-zinc-700 rounded-lg shadow-2xl p-4 min-w-[280px] max-w-sm"
+      className="absolute z-50 glass-panel glass-panel--strong rounded-xl p-4 min-w-[280px] max-w-sm text-slate-100"
       style={{
         left: `${position.x}px`,
         top: `${position.y}px`,
