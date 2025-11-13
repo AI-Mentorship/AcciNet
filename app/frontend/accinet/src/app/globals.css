@@ -56,6 +56,16 @@
 /* Use the Quicksand font provided by Next's font loader when the
    `--font-quicksand` CSS variable is injected (see `layout.tsx`).
    Fall back to system fonts if the variable isn't present. */
+<<<<<<< HEAD
+=======
+html,
+body {
+  height: 100%;
+  margin: 0;
+  padding: 0;
+}
+
+>>>>>>> 9d6a451d13211a74de66aeda9c0c76c3f34897e0
 body {
   background: var(--background);
   color: var(--foreground);
