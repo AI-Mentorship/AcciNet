@@ -1,0 +1,268 @@
+{
+  "$schema": "http://json-schema.org/schema#",
+  "type": "array",
+  "items": {
+    "type": "object",
+    "properties": {
+      "bounds": {
+        "type": "object",
+        "properties": {
+          "northeast": {
+            "type": "object",
+            "properties": {
+              "lat": {
+                "type": "number"
+              },
+              "lng": {
+                "type": "number"
+              }
+            },
+            "required": [
+              "lat",
+              "lng"
+            ]
+          },
+          "southwest": {
+            "type": "object",
+            "properties": {
+              "lat": {
+                "type": "number"
+              },
+              "lng": {
+                "type": "number"
+              }
+            },
+            "required": [
+              "lat",
+              "lng"
+            ]
+          }
+        },
+        "required": [
+          "northeast",
+          "southwest"
+        ]
+      },
+      "copyrights": {
+        "type": "string"
+      },
+      "legs": {
+        "type": "array",
+        "items": {
+          "type": "object",
+          "properties": {
+            "distance": {
+              "type": "object",
+              "properties": {
+                "text": {
+                  "type": "string"
+                },
+                "value": {
+                  "type": "integer"
+                }
+              },
+              "required": [
+                "text",
+                "value"
+              ]
+            },
+            "duration": {
+              "type": "object",
+              "properties": {
+                "text": {
+                  "type": "string"
+                },
+                "value": {
+                  "type": "integer"
+                }
+              },
+              "required": [
+                "text",
+                "value"
+              ]
+            },
+            "end_address": {
+              "type": "string"
+            },
+            "end_location": {
+              "type": "object",
+              "properties": {
+                "lat": {
+                  "type": "number"
+                },
+                "lng": {
+                  "type": "number"
+                }
+              },
+              "required": [
+                "lat",
+                "lng"
+              ]
+            },
+            "start_address": {
+              "type": "string"
+            },
+            "start_location": {
+              "type": "object",
+              "properties": {
+                "lat": {
+                  "type": "number"
+                },
+                "lng": {
+                  "type": "number"
+                }
+              },
+              "required": [
+                "lat",
+                "lng"
+              ]
+            },
+            "steps": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "distance": {
+                    "type": "object",
+                    "properties": {
+                      "text": {
+                        "type": "string"
+                      },
+                      "value": {
+                        "type": "integer"
+                      }
+                    },
+                    "required": [
+                      "text",
+                      "value"
+                    ]
+                  },
+                  "duration": {
+                    "type": "object",
+                    "properties": {
+                      "text": {
+                        "type": "string"
+                      },
+                      "value": {
+                        "type": "integer"
+                      }
+                    },
+                    "required": [
+                      "text",
+                      "value"
+                    ]
+                  },
+                  "end_location": {
+                    "type": "object",
+                    "properties": {
+                      "lat": {
+                        "type": "number"
+                      },
+                      "lng": {
+                        "type": "number"
+                      }
+                    },
+                    "required": [
+                      "lat",
+                      "lng"
+                    ]
+                  },
+                  "html_instructions": {
+                    "type": "string"
+                  },
+                  "polyline": {
+                    "type": "object",
+                    "properties": {
+                      "points": {
+                        "type": "string"
+                      }
+                    },
+                    "required": [
+                      "points"
+                    ]
+                  },
+                  "start_location": {
+                    "type": "object",
+                    "properties": {
+                      "lat": {
+                        "type": "number"
+                      },
+                      "lng": {
+                        "type": "number"
+                      }
+                    },
+                    "required": [
+                      "lat",
+                      "lng"
+                    ]
+                  },
+                  "travel_mode": {
+                    "type": "string"
+                  },
+                  "maneuver": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "distance",
+                  "duration",
+                  "end_location",
+                  "html_instructions",
+                  "polyline",
+                  "start_location",
+                  "travel_mode"
+                ]
+              }
+            },
+            "traffic_speed_entry": {
+              "type": "array"
+            },
+            "via_waypoint": {
+              "type": "array"
+            }
+          },
+          "required": [
+            "distance",
+            "duration",
+            "end_address",
+            "end_location",
+            "start_address",
+            "start_location",
+            "steps",
+            "traffic_speed_entry",
+            "via_waypoint"
+          ]
+        }
+      },
+      "overview_polyline": {
+        "type": "object",
+        "properties": {
+          "points": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "points"
+        ]
+      },
+      "summary": {
+        "type": "string"
+      },
+      "warnings": {
+        "type": "array"
+      },
+      "waypoint_order": {
+        "type": "array"
+      }
+    },
+    "required": [
+      "bounds",
+      "copyrights",
+      "legs",
+      "overview_polyline",
+      "summary",
+      "warnings",
+      "waypoint_order"
+    ]
+  }
+}
