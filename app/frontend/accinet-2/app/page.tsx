@@ -121,7 +121,7 @@ export default function LandingPage() {
   }, []);
 
   return (
-    <div className="relative min-h-screen p-[clamp(1rem,4vw,2.5rem)] bg-[radial-gradient(circle_at_20%_20%,rgba(64,196,255,0.18),transparent_55%),radial-gradient(circle_at_80%_0%,rgba(189,130,255,0.17),transparent_50%),#04060b] text-[#f0f3ff] overflow-x-hidden overflow-y-visible">
+    <div className="relative min-h-screen p-[clamp(1rem,4vw,2.5rem)] bg-[radial-gradient(circle_at_20%_20%,rgba(64,196,255,0.18),transparent_55%),radial-gradient(circle_at_80%_0%,rgba(189,130,255,0.17),transparent_50%),#04060b] text-[#f0f3ff] overflow-x-hidden overflow-y-auto no-scrollbar">
       <Particles
         id="tsparticles"
         options={{

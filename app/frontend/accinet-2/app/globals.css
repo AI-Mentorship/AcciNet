@@ -92,19 +92,21 @@ body {
   -webkit-backdrop-filter: blur(16px) saturate(160%);
 }
 
-::-webkit-scrollbar {
-  width: 10px;
+html,
+body {
+  scrollbar-width: none;
 }
 
-::-webkit-scrollbar-track {
-  background: rgba(12, 16, 28, 0.4);
+html::-webkit-scrollbar,
+body::-webkit-scrollbar {
+  display: none;
 }
 
-::-webkit-scrollbar-thumb {
-  background: rgba(148, 163, 254, 0.35);
-  border-radius: 9999px;
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
 }
 
-::-webkit-scrollbar-thumb:hover {
-  background: rgba(148, 163, 254, 0.55);
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
 }
