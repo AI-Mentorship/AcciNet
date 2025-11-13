@@ -1,8 +1,4 @@
-<<<<<<< HEAD
-from fastapi import FastAPI
-=======
 from fastapi import FastAPI, HTTPException
->>>>>>> 9d6a451d13211a74de66aeda9c0c76c3f34897e0
 from fastapi.middleware.cors import CORSMiddleware
 import os,requests
 import googlemaps
@@ -10,8 +6,6 @@ from dotenv import load_dotenv
 import polyline
 import json
 from genson import SchemaBuilder
-<<<<<<< HEAD
-=======
 import redis.asyncio as redis
 import math
 import httpx
@@ -22,13 +16,10 @@ from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession, async_sess
 from sqlalchemy import text
 import getpass
 
->>>>>>> 9d6a451d13211a74de66aeda9c0c76c3f34897e0
 
 load_dotenv()
 app = FastAPI()
 gmaps = googlemaps.Client(key=os.getenv("GOOGLE_MAPS_API_KEY"))
-<<<<<<< HEAD
-=======
 redis_client = redis.from_url("redis://localhost:6379",decode_responses=True)
 
 meteo_url = "https://api.open-meteo.com/v1/forecast"
@@ -133,7 +124,6 @@ async def shutdown_event():
         await db_engine.dispose()
         print("✅ Database connection pool closed")
 
->>>>>>> 9d6a451d13211a74de66aeda9c0c76c3f34897e0
 
 origins=["http://localhost:3000"," http://127.0.0.1:3000"]
 app.add_middleware(
@@ -150,25 +140,17 @@ def save_schema(data,filename="directions_schema.json"):
     schema = builder.to_schema()  
     with open(filename,"w",encoding='utf-8') as f:
         json.dump(schema,f,indent=2)
-<<<<<<< HEAD
-  
-=======
 
 
->>>>>>> 9d6a451d13211a74de66aeda9c0c76c3f34897e0
 
 @app.get("/")
 async def root():
     return {"message": "Hello World"}
-<<<<<<< HEAD
-
-=======
 '''
 @app.get("/street")
 async def get_street(street_lat,street_lon):
     )
 '''
->>>>>>> 9d6a451d13211a74de66aeda9c0c76c3f34897e0
 @app.get("/routes")
 async def get_routes(origin, destination, mode):
     
@@ -178,12 +160,8 @@ async def get_routes(origin, destination, mode):
     try:
         directions = gmaps.directions(origin, destination, mode=mode,alternatives=True)
     except Exception as e:
-<<<<<<< HEAD
-        return {"error":f"Failed to fetch directions:{e}"}  
-=======
         raise HTTPException(status_code=500, detail=f"Failed to fetch directions: {str(e)}")
     
->>>>>>> 9d6a451d13211a74de66aeda9c0c76c3f34897e0
     if not directions:
         return []
     
@@ -192,27 +170,6 @@ async def get_routes(origin, destination, mode):
     num = 1
     save_schema(directions)
     for route in directions:
-<<<<<<< HEAD
-        encoded_polyline = route['overview_polyline']['points']#Get the polyline
-        
-        # Get the first leg of the journey for total distance/duration
-        if route['legs']:
-            leg = route['legs'][0]
-            
-            # 3. Extract distance and duration from the leg
-            distance_text = leg['distance']['text']
-            duration_text = leg['duration']['text']
-            
-            routes.append({
-                "distance": distance_text,
-                "duration": duration_text,
-                "polyline": encoded_polyline,
-                "summary": route.get('summary', 'Direct Route') #  descriptive summary
-            })
-    return routes
-
-
-=======
         try:
             encoded_polyline = route['overview_polyline']['points']#Get the polyline
             
@@ -584,4 +541,3 @@ async def get_route_conditions(encoded_polyline: str, sample_interval: int = 8) 
         results.append(condition)
     
     return results
->>>>>>> 9d6a451d13211a74de66aeda9c0c76c3f34897e0
