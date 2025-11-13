@@ -11,6 +11,30 @@ data/processed/dataset_v3.csv
 data/processed/PotentialCSV.csv
 *.parquet
 
+# Large data files - shapefiles
+*.shp
+*.dbf
+*.shx
+*.prj
+*.cpg
+*.shp.xml
+
+# Large processed data files
+data/processed/preprocessed_data_no_api.csv
+data/processed/crash_street_api_features.csv
+data/processed/encoded_data_binary_encoding.csv
+data/txdotCSVs/*.shp
+data/txdotCSVs/*.dbf
+data/txdotCSVs/*.shx
+data/txdotCSVs/*.prj
+data/txdotCSVs/*.cpg
+data/txdotCSVs/*.shp.xml
+app/backend/roads/**/*.shp
+app/backend/roads/**/*.dbf
+app/backend/roads/**/*.shx
+app/backend/roads/**/*.prj
+app/backend/roads/**/*.cpg
+
 # Node.js / Frontend
 node_modules/
 **/node_modules/
