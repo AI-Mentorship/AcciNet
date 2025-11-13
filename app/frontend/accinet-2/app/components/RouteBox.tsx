@@ -36,25 +36,27 @@ type State = {
   error?: string;
 };
 
+const createDefaultState = (): State => ({
+  originText: '',
+  destText: '',
+  originResults: [],
+  destResults: [],
+  originSel: null,
+  destSel: null,
+  openField: undefined,
+  originIdx: -1,
+  destIdx: -1,
+  usingMyLocation: true,
+  loading: false,
+  searching: false,
+  collapsed: false,
+});
+
 export default class RouteBox extends React.Component<Props, State> {
   private originMarker?: maplibregl.Marker;
   private destMarker?: maplibregl.Marker;
 
-  state: State = {
-    originText: '',
-    destText: '',
-    originResults: [],
-    destResults: [],
-    originSel: null,
-    destSel: null,
-    openField: undefined,
-    originIdx: -1,
-    destIdx: -1,
-    usingMyLocation: true,
-    loading: false,
-    searching: false,
-    collapsed: false,
-  };
+  state: State = createDefaultState();
 
   private debounceOrigin?: number;
   private debounceDest?: number;
@@ -262,7 +264,21 @@ export default class RouteBox extends React.Component<Props, State> {
 
   private resetRoutes = () => {
     this.props.onResetRoutes?.();
-    this.setState({ collapsed: false });
+    if (this.debounceOrigin) {
+      clearTimeout(this.debounceOrigin);
+      this.debounceOrigin = undefined;
+    }
+    if (this.debounceDest) {
+      clearTimeout(this.debounceDest);
+      this.debounceDest = undefined;
+    }
+    this.originMarker?.remove();
+    this.destMarker?.remove();
+    this.originMarker = undefined;
+    this.destMarker = undefined;
+    this.setState(createDefaultState(), () => {
+      if (this.state.usingMyLocation) this.markCurrentLocation();
+    });
   };
 
   render() {
@@ -406,7 +422,7 @@ export default class RouteBox extends React.Component<Props, State> {
             )}
 
             {openField === 'origin' && originResults.length > 0 && !usingMyLocation && (
-              <div className="absolute z-[3] top-[calc(100%+6px)] left-0 right-0 bg-[rgba(10,12,16,.98)] border border-white/12 rounded-xl shadow-[0_18px_48px_rgba(0,0,0,.5)] max-h-[280px] overflow-y-auto" onMouseDown={(e) => e.preventDefault()}>
+              <div className="absolute z-[3] top-[calc(100%+6px)] left-0 right-0 bg-[rgba(10,12,16,.98)] border border-white/12 rounded-xl shadow-[0_18px_48px_rgba(0,0,0,.5)] max-h-[280px] overflow-y-auto no-scrollbar" onMouseDown={(e) => e.preventDefault()}>
                 {originResults.map((r, i) => (
                   <div
                     key={i}
@@ -467,7 +483,7 @@ export default class RouteBox extends React.Component<Props, State> {
             )}
 
             {openField === 'dest' && (
-              <div className="absolute z-[3] top-[calc(100%+6px)] left-0 right-0 bg-[rgba(10,12,16,.98)] border border-white/12 rounded-xl shadow-[0_18px_48px_rgba(0,0,0,.5)] max-h-[280px] overflow-y-auto" onMouseDown={(e) => e.preventDefault()}>
+              <div className="absolute z-[3] top-[calc(100%+6px)] left-0 right-0 bg-[rgba(10,12,16,.98)] border border-white/12 rounded-xl shadow-[0_18px_48px_rgba(0,0,0,.5)] max-h-[280px] overflow-y-auto no-scrollbar" onMouseDown={(e) => e.preventDefault()}>
                 {destResults.length > 0 ? (
                   destResults.map((r, i) => (
                     <div

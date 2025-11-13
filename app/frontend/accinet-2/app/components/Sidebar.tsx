@@ -81,7 +81,7 @@ export default function Sidebar({
           </button>
         </div>
 
-        <div className="flex-1 p-4 px-4.5 overflow-y-auto animate-[fadein_.3s_ease]">
+        <div className="flex-1 p-4 px-4.5 overflow-y-auto no-scrollbar animate-[fadein_.3s_ease]">
           {/* Map appearance */}
           <div className="mt-5.5">
             <h3 className="text-[13px] font-semibold tracking-[.6px] uppercase opacity-75 m-0 mb-2 flex items-center gap-1.5">
