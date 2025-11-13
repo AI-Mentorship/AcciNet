@@ -65,6 +65,11 @@ const features: Feature[] = [
     copy: 'Drop the AcciNet experience into any dashboard with a lightweight API.',
     icon: Sparkles,
   },
+  {
+    title: 'Historical crash analysis',
+    copy: 'Explore time-series heatmaps of historical crash density across Texas with interactive year range selection.',
+    icon: Activity,
+  },
 ];
 
 const pipeline: PipelineStep[] = [
@@ -182,6 +187,7 @@ export default function LandingPage() {
             <a href="#platform" className="text-inherit no-underline transition-colors hover:text-white">Platform</a>
             <a href="#features" className="text-inherit no-underline transition-colors hover:text-white">Layers</a>
             <a href="#pipeline" className="text-inherit no-underline transition-colors hover:text-white">Pipeline</a>
+            <Link href="/density" className="text-inherit no-underline transition-colors hover:text-white">Historical</Link>
             <a href="#contact" className="text-inherit no-underline transition-colors hover:text-white">Contact</a>
           </nav>
           <div className="flex items-center gap-3">
@@ -207,11 +213,15 @@ export default function LandingPage() {
             <p className="text-[rgba(240,243,255,0.75)] text-base leading-relaxed max-w-[520px] m-0 mx-auto lg:mx-0">
               AcciNet fuses live traffic, weather, and historical crash intelligence to highlight safer
               corridors before an incident builds. Switch between gradient routes and hex overlays without
-              losing context.
+              losing context. Explore historical crash patterns with interactive time-series heatmaps.
             </p>
             <div className="flex flex-wrap justify-center lg:justify-start gap-3.5 mt-7">
               <Link className="glass-button text-sm font-semibold no-underline inline-flex items-center gap-1.5 py-3 px-5.5" href="/map">
                 Launch map
+                <ArrowRight size={18} aria-hidden />
+              </Link>
+              <Link className="glass-button text-sm font-semibold no-underline inline-flex items-center gap-1.5 py-3 px-5.5" href="/density">
+                Historical view
                 <ArrowRight size={18} aria-hidden />
               </Link>
               <a className="glass-chip inline-flex items-center gap-1.5 no-underline" href="#features">
@@ -294,7 +304,7 @@ export default function LandingPage() {
               return (
                 <article
                   key={feature.title}
-                  className="glass-panel glass-panel--strong p-6 rounded-2xl min-h-[190px] transition-all hover:-translate-y-1 opacity-0 translate-y-7 duration-700 ease-out"
+                  className="glass-panel glass-panel--strong p-6 rounded-2xl min-h-[190px] transition-all hover:-translate-y-[1.5px] opacity-0 translate-y-7 duration-700 ease-out"
                   data-fade
                   style={{ transitionDelay: `${index * 60}ms` }}
                 >
@@ -367,6 +377,10 @@ export default function LandingPage() {
           <div className="flex gap-3 flex-wrap">
             <Link className="glass-button inline-flex items-center gap-1.5 py-3 px-5.5 font-semibold no-underline text-sm" href="/map">
               Launch map
+              <ArrowRight size={18} aria-hidden />
+            </Link>
+            <Link className="glass-button inline-flex items-center gap-1.5 py-3 px-5.5 font-semibold no-underline text-sm" href="/density">
+              Historical analysis
               <ArrowRight size={18} aria-hidden />
             </Link>
             <a className="glass-chip inline-flex items-center gap-1.5 no-underline" href="mailto:team@accinet.ai">
