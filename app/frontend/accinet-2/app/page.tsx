@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import MapTileViewer from './components/MapTileViewer';
 import RoutePlanner from './components/RoutePlanner';
+import ParticlesBackground from './components/ParticlesBackground';
 import { RouteDetails } from './lib/route';
 
 export default function Home() {
@@ -20,8 +21,9 @@ export default function Home() {
   };
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-black font-sans p-8">
-      <main className="flex flex-col items-center gap-8 w-full max-w-7xl h-[calc(100vh-4rem)]">
+    <div className="relative flex min-h-screen items-center justify-center bg-black font-sans p-8">
+      <ParticlesBackground />
+      <main className="relative z-10 flex flex-col items-center gap-8 w-full max-w-7xl h-[calc(100vh-4rem)]">
         <div className="w-full flex-shrink-0">
           <h1 className="text-left text-4xl font-semibold leading-tight tracking-tight text-zinc-50 mb-4">
             AcciNet
