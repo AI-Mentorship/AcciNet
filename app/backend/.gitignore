@@ -31,3 +31,16 @@ pip-wheel-metadata/
 
 # Other
 *.log
+<<<<<<< HEAD
+=======
+
+# Large data files
+data/crash_data_2021-2025.csv
+data/*.csv
+
+# Large GIS/shapefile data
+roads/
+roads/**/*.dbf
+roads/**/*.shp
+roads/**/*.shx
+>>>>>>> 9d6a451d13211a74de66aeda9c0c76c3f34897e0

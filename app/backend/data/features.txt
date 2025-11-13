@@ -1,0 +1,21 @@
+Crash_Date              object
+Crash_Time              object
+#Just pull curr time 
+
+Crash_Speed_Limit        int64 #StreetMap
+Road_Constr_Zone_Fl     object #StreetMap
+At_Intrsct_Fl           object #StreetMap
+Wthr_Cond_ID             int64 #Meteo
+Light_Cond_ID            int64 #Meteo?
+Road_Type_ID             int64 #
+Road_Cls_ID              int64
+Latitude               float64
+Longitude              float64
+Rural_Fl                object
+Nbr_Of_Lane            float64
+
+
+
+Adt_Adj_Curnt_Amt      float64
+Pct_Single_Trk_Adt     float64
+dtype: object
