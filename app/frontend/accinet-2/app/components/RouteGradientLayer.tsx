@@ -44,12 +44,9 @@ export default class RouteGradientLayer extends React.Component<Props> {
   }
 
   private normalizeLngLat(coords: [number, number][]) {
-    if (!coords || coords.length === 0) return coords;
-    const [x, y] = coords[0];
-    const looksLatLon = Math.abs(x) <= 90 && Math.abs(y) > 90;
-    return looksLatLon
-      ? coords.map(([lat, lon]) => [lon, lat] as [number, number])
-      : coords;
+    // Coordinates should already be in [lng, lat] format from routes.ts
+    // No transformation needed
+    return coords;
   }
 
   private ensure = () => {
@@ -57,7 +54,9 @@ export default class RouteGradientLayer extends React.Component<Props> {
     const { src, halo, grad } = this.ids;
 
     const coords = this.normalizeLngLat(this.props.routeCoords);
+    console.log(`[RouteGradientLayer] Ensuring route ${this.ids.src} with ${coords?.length || 0} coordinates`, coords?.[0]);
     if (!coords || coords.length < 2) {
+      console.warn(`[RouteGradientLayer] Not enough coordinates for ${this.ids.src}`);
       if (map.getLayer(grad)) map.removeLayer(grad);
       if (map.getLayer(halo)) map.removeLayer(halo);
       if (map.getSource(src)) map.removeSource(src);
@@ -77,12 +76,15 @@ export default class RouteGradientLayer extends React.Component<Props> {
 
     const s = map.getSource(src) as maplibregl.GeoJSONSource | undefined;
     if (!s) {
+      console.log(`[RouteGradientLayer] Adding source ${src}`);
       map.addSource(src, { type: 'geojson', data: fc, lineMetrics: true });
     } else {
+      console.log(`[RouteGradientLayer] Updating source ${src}`);
       s.setData(fc);
     }
 
     if (!map.getLayer(halo)) {
+      console.log(`[RouteGradientLayer] Adding halo layer ${halo}`);
       map.addLayer({
         id: halo,
         type: 'line',
@@ -96,6 +98,7 @@ export default class RouteGradientLayer extends React.Component<Props> {
       });
     }
     if (!map.getLayer(grad)) {
+      console.log(`[RouteGradientLayer] Adding gradient layer ${grad}`);
       map.addLayer({
         id: grad,
         type: 'line',
@@ -108,9 +111,11 @@ export default class RouteGradientLayer extends React.Component<Props> {
         },
       });
     } else {
+      console.log(`[RouteGradientLayer] Updating gradient layer ${grad}`);
       map.setPaintProperty(grad, 'line-gradient', this.buildGradient());
     }
 
+    console.log(`[RouteGradientLayer] Moving layers to top`);
     map.moveLayer(halo);
     map.moveLayer(grad);
   };

@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import PlaceSearch from './PlaceSearch';
 import { getRoute, RouteDetails } from '../lib/route';
+import polyline from '@mapbox/polyline';
 
 interface PlaceCoordinates {
   lat: number;
@@ -22,6 +23,78 @@ export default function RoutePlanner({ onRoutesLoaded, onError }: RoutePlannerPr
   const [originCoords, setOriginCoords] = useState<PlaceCoordinates | null>(null);
   const [destinationCoords, setDestinationCoords] = useState<PlaceCoordinates | null>(null);
   const [isLoading, setIsLoading] = useState(false);
+
+  /**
+   * Generates smooth random gradient values for a route polyline.
+   * Uses key points with random values and smooth interpolation between them.
+   */
+  const generateSmoothGradientValues = (polylineString: string): number[] => {
+    try {
+      const coords = polyline.decode(polylineString) as [number, number][];
+      if (coords.length === 0) return [];
+      
+      const numPoints = coords.length;
+      
+      // Generate 3-5 random key points along the route
+      const numKeyPoints = Math.min(5, Math.max(3, Math.floor(numPoints / 20)));
+      const keyPointIndices: number[] = [];
+      const keyPointValues: number[] = [];
+      
+      // Always include start and end points
+      keyPointIndices.push(0);
+      keyPointValues.push(Math.random()); // Random start value (0-1)
+      
+      // Add random key points in between
+      for (let i = 1; i < numKeyPoints - 1; i++) {
+        const index = Math.floor((i / numKeyPoints) * numPoints);
+        keyPointIndices.push(index);
+        keyPointValues.push(Math.random()); // Random value (0-1)
+      }
+      
+      // Always include end point
+      keyPointIndices.push(numPoints - 1);
+      keyPointValues.push(Math.random()); // Random end value (0-1)
+      
+      // Interpolate values for all points using smooth cubic interpolation
+      const values: number[] = [];
+      for (let i = 0; i < numPoints; i++) {
+        // Find the two key points that bracket this index
+        let lowerIdx = 0;
+        let upperIdx = keyPointIndices.length - 1;
+        
+        for (let j = 0; j < keyPointIndices.length - 1; j++) {
+          if (i >= keyPointIndices[j] && i <= keyPointIndices[j + 1]) {
+            lowerIdx = j;
+            upperIdx = j + 1;
+            break;
+          }
+        }
+        
+        const lowerIndex = keyPointIndices[lowerIdx];
+        const upperIndex = keyPointIndices[upperIdx];
+        const lowerValue = keyPointValues[lowerIdx];
+        const upperValue = keyPointValues[upperIdx];
+        
+        if (lowerIndex === upperIndex) {
+          values.push(lowerValue);
+        } else {
+          // Smooth interpolation using ease-in-out curve
+          const t = (i - lowerIndex) / (upperIndex - lowerIndex);
+          // Apply smooth easing function (ease-in-out cubic)
+          const easedT = t < 0.5 
+            ? 4 * t * t * t 
+            : 1 - Math.pow(-2 * t + 2, 3) / 2;
+          const interpolated = lowerValue + (upperValue - lowerValue) * easedT;
+          values.push(Math.max(0, Math.min(1, interpolated))); // Clamp to [0, 1]
+        }
+      }
+      
+      return values;
+    } catch (error) {
+      console.error('Error generating gradient values:', error);
+      return [];
+    }
+  };
 
   const handleOriginSelect = (address: string, lat: number, lng: number) => {
     setOriginCoords({ lat, lng });
@@ -50,7 +123,17 @@ export default function RoutePlanner({ onRoutesLoaded, onError }: RoutePlannerPr
       });
       
       console.log(`Received ${routes.length} route(s) from backend.`);
-      onRoutesLoaded(routes);
+      
+      // Add random but smooth gradient values to each route
+      const routesWithGradients = routes.map((route) => {
+        if (route.polyline) {
+          const values = generateSmoothGradientValues(route.polyline);
+          return { ...route, values };
+        }
+        return route;
+      });
+      
+      onRoutesLoaded(routesWithGradients);
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Failed to fetch routes';
       console.error('Error fetching routes:', error);

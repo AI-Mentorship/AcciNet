@@ -340,6 +340,11 @@ export default function MapTileViewer({
       return;
     }
 
+    // Log how many routes we're rendering
+    if (routes.length > 0) {
+      console.log(`Rendering ${routes.length} route(s) on map`);
+    }
+
     const ctx = routeCanvas.getContext('2d');
     if (!ctx) return;
 

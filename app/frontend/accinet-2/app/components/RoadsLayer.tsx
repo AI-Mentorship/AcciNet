@@ -27,9 +27,11 @@ export default class RoadsLayer extends React.Component<Props> {
     if (!map) return;
 
     this.ensureSources();
-    this.updateRoads();
+    // Disabled: /roads/bbox endpoint no longer exists in new architecture
+    // this.updateRoads();
 
-    map.on('moveend', this.updateRoadsThrottled);
+    // Disabled: No longer listening to map movements to fetch roads
+    // map.on('moveend', this.updateRoadsThrottled);
     map.on('click', this.layerId, this.onRoadClick);
     map.on('mouseenter', this.layerId, this.onMouseEnter);
     map.on('mouseleave', this.layerId, this.onMouseLeave);
@@ -39,7 +41,7 @@ export default class RoadsLayer extends React.Component<Props> {
     const { map } = this.props;
     if (!map) return;
 
-    map.off('moveend', this.updateRoadsThrottled);
+    // map.off('moveend', this.updateRoadsThrottled); // Disabled
     map.off('click', this.layerId, this.onRoadClick);
     map.off('mouseenter', this.layerId, this.onMouseEnter);
     map.off('mouseleave', this.layerId, this.onMouseLeave);
@@ -148,6 +150,19 @@ export default class RoadsLayer extends React.Component<Props> {
         signal: this.abortController.signal,
       });
       if (!response.ok) {
+        // Endpoint no longer exists - silently handle 404
+        if (response.status === 404) {
+          // Clear any existing road data since endpoint is not available
+          const source = map.getSource(this.sourceId) as maplibregl.GeoJSONSource | undefined;
+          if (source) {
+            source.setData({
+              type: 'FeatureCollection',
+              features: [],
+            } satisfies FeatureCollection);
+          }
+          return;
+        }
+        // Log other errors
         console.error('Failed to fetch roads:', response.status, await response.text());
         return;
       }
@@ -158,6 +173,7 @@ export default class RoadsLayer extends React.Component<Props> {
       }
     } catch (error: any) {
       if (error?.name === 'AbortError') return;
+      // Network errors (fetch doesn't throw on 404, only network errors reach here)
       console.error('Error fetching roads:', error);
     }
   };
