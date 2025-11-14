@@ -19,9 +19,15 @@ import asyncio
 
 
 load_dotenv()
+
 app = FastAPI()
 gmaps = googlemaps.Client(key=os.getenv("GOOGLE_MAPS_API_KEY"))
-redis_client = redis.from_url("redis://localhost:6379",decode_responses=True)
+
+usingRedis = True
+if(usingRedis):
+    redis_client = redis.from_url("redis://localhost:6379",decode_responses=True)
+else:
+    redis_client = None
 
 meteo_url = "https://api.open-meteo.com/v1/forecast"
 overpass_url = "https://overpass-api.de/api/interpreter"
@@ -104,12 +110,12 @@ async def startup_event():
         # Test connection
         async with engine.begin() as conn:
             await conn.execute(text("SELECT 1"))
-        print("✅ Database connection pool initialized")
+        print("Database connection pool initialized")
     except Exception as e:
         error_msg = str(e)
-        print(f"⚠️  Warning: Could not initialize database pool: {error_msg}")
+        print(f"Warning: Could not initialize database pool: {error_msg}")
         if "password authentication failed" in error_msg.lower() or "authentication failed" in error_msg.lower():
-            print("\n💡 To fix this, you have two options:")
+            print("\nTo fix this, you have two options:")
             print("   1. Set a password in your .env file:")
             print("      DB_PASS=your_password")
             print("   2. Configure PostgreSQL to allow passwordless TCP/IP connections:")
@@ -123,10 +129,10 @@ async def shutdown_event():
     global db_engine
     if db_engine:
         await db_engine.dispose()
-        print("✅ Database connection pool closed")
+        print("Database connection pool closed")
 
 
-origins=["http://localhost:3000"," http://127.0.0.1:3000"]
+origins=["http://localhost:3000", "http://127.0.0.1:3000"]
 app.add_middleware(
     CORSMiddleware,
     allow_origins=origins,
@@ -485,7 +491,11 @@ async def get_weather(lat: float, lon: float):
     cache_key = f"weather:{grid_key}"
 
     # Check Redis for cached data
-    cached = await redis_client.get(cache_key)
+    if(usingRedis):
+        cached = await redis_client.get(cache_key)
+    else:
+        cached = False
+
     if cached:
         print(f"Cache hit for weather grid {grid_key}")
         return json.loads(cached)
@@ -496,7 +506,8 @@ async def get_weather(lat: float, lon: float):
         # fetch_weather will automatically use grid center coordinates
         data = await fetch_weather(lat, lon, use_grid=True)
         # Cache result for 1 hour
-        await redis_client.set(cache_key, json.dumps(data), ex=3600)
+        if(usingRedis):
+            await redis_client.set(cache_key, json.dumps(data), ex=3600)
         return data
     except httpx.TimeoutException:
         return {"status": "error", "message": "Weather API request timed out."}
@@ -646,8 +657,11 @@ async def fetch_nearest_roads_for_coords(coords: List[Tuple[float, float]], sear
         
         for grid_key, coord_list in grid_coords_map.items():
             cache_key = f"road_grid:{grid_key}"
-            cached = await redis_client.get(cache_key)
-            
+            if(usingRedis):
+                cached = await redis_client.get(cache_key)
+            else:
+                cached = False
+
             if cached:
                 # Cache hit - use cached road data for this grid cell
                 cached_road = json.loads(cached)  # Returns None if cached value was None
@@ -691,9 +705,9 @@ async def fetch_nearest_roads_for_coords(coords: List[Tuple[float, float]], sear
                 
                 # Cache the result for this grid cell (24 hour TTL)
                 cache_key = f"road_grid:{grid_key}"
-                if road_data:
+                if road_data and usingRedis:
                     await redis_client.set(cache_key, json.dumps(road_data), ex=86400)
-                else:
+                elif(usingRedis):
                     # Cache None result too (shorter TTL to allow retry)
                     await redis_client.set(cache_key, json.dumps(None), ex=3600)
                 
@@ -972,7 +986,11 @@ async def get_route_conditions(encoded_polyline: str, sample_interval: int = 8) 
     weather_tasks = []
     for weather_key, coord_list in weather_grid_map.items():
         # Check cache first
-        cached_weather = await redis_client.get(f"weather:{weather_key}")
+        if(usingRedis):
+            cached_weather = await redis_client.get(f"weather:{weather_key}")
+        else:
+            cached_weather = False
+
         if cached_weather:
             # Cache hit - use cached data
             weather_data = json.loads(cached_weather)
@@ -990,7 +1008,8 @@ async def get_route_conditions(encoded_polyline: str, sample_interval: int = 8) 
             # Use grid center coordinates directly (no need to snap again)
             weather_data = await fetch_weather(grid_lat, grid_lon, use_grid=False)  # Already at grid center
             # Cache for 1 hour
-            await redis_client.set(f"weather:{weather_key}", json.dumps(weather_data), ex=3600)
+            if(usingRedis):
+                await redis_client.set(f"weather:{weather_key}", json.dumps(weather_data), ex=3600)
             return weather_key, weather_data
         
         weather_fetch_tasks = [

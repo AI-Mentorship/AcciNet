@@ -5,6 +5,7 @@ import maplibregl from 'maplibre-gl';
 import 'maplibre-gl/dist/maplibre-gl.css';
 
 import { GOOGLE_API_KEY, HERE_API_KEY, MAPTILER_KEY, TOM_TOM_KEY } from '../lib/keys';
+
 import type { GoogleRoute } from '../lib/routes';
 
 import RouteBox from './RouteBox';
@@ -346,10 +347,14 @@ const AcciNetMap: React.FC = () => {
 export default AcciNetMap;
 
 async function loadMapStyle() {
+  console.log("ENV:", process.env.NEXT_PUBLIC_MAPTILER_API_KEY);
   const styleURL = `https://api.maptiler.com/maps/streets-v2-dark/style.json?key=${MAPTILER_KEY}`;
   const response = await fetch(styleURL);
+  // const text = await response.text();  
   if (!response.ok) {
-    throw new Error(`Failed to fetch MapTiler style (${response.status})`);
+    console.log(response)
+    throw new Error(`Failed to fetch MapTiler style (${response.status}). `);
+
   }
   const style = await response.json();
   return style;
