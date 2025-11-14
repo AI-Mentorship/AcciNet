@@ -212,20 +212,58 @@ else:
     print(f"   ✅ Ready to upload")
 
 # -------------------------------
-# 4) Upload to PostGIS (chunked)
+# 4) Ensure consistent schema before upload
 # -------------------------------
 TABLE_NAME = "roads"
+print(f"\n📋 Ensuring consistent schema for table '{TABLE_NAME}'...")
+
+with engine.begin() as conn:
+    # Check if table exists
+    table_exists = conn.execute(text("""
+        SELECT EXISTS (
+            SELECT FROM information_schema.tables 
+            WHERE table_schema = 'public' 
+            AND table_name = :table_name
+        );
+    """), {"table_name": TABLE_NAME}).scalar()
+    
+    if not table_exists:
+        print("   Creating table with consistent schema...")
+        # Create table with exact schema to ensure consistency
+        conn.execute(text("""
+            CREATE TABLE roads (
+                osm_id   TEXT,
+                code     INTEGER,
+                fclass   TEXT,
+                name     TEXT,
+                ref      TEXT,
+                oneway   TEXT,
+                maxspeed INTEGER,
+                layer    BIGINT,
+                bridge   TEXT,
+                tunnel   TEXT,
+                geom     GEOMETRY(LINESTRING, 4326)
+            );
+        """))
+        print("   ✅ Table created with consistent schema")
+    else:
+        print("   ✅ Table already exists")
+
+# -------------------------------
+# 5) Upload to PostGIS (chunked)
+# -------------------------------
+print(f"\n📤 Uploading data to '{TABLE_NAME}'...")
 gdf.to_postgis(
     name=TABLE_NAME,
     con=engine,
-    if_exists="replace",      # or 'append'
-    index=False,
+    if_exists="append",       # Use 'append' since table is pre-created, or 'replace' to overwrite
+    index=False,              # We'll create index manually to avoid duplicates
     chunksize=50000           # tune if needed
 )
 print(f"✅ Uploaded {len(gdf)} records to table '{TABLE_NAME}' in {DB_TYPE}.")
 
 # -------------------------------
-# 5) Verify upload + sample rows
+# 6) Verify upload + create indexes
 # -------------------------------
 with engine.begin() as conn:
     # Count rows
@@ -240,8 +278,14 @@ with engine.begin() as conn:
     for gt, c in geom_types:
         print(f"  - {gt}: {c}")
 
-    # Create spatial index (speeds up spatial queries)
-    conn.execute(text(f"CREATE INDEX IF NOT EXISTS {TABLE_NAME}_geom_idx ON {TABLE_NAME} USING GIST (geom);"))
+    # Clean up any duplicate indexes
+    print("\n🔍 Cleaning up indexes...")
+    conn.execute(text(f"DROP INDEX IF EXISTS {TABLE_NAME}_geom_idx;"))
+    
+    # Create single spatial index with consistent name
+    print("   Creating spatial index...")
+    conn.execute(text(f"CREATE INDEX IF NOT EXISTS idx_roads_geom ON {TABLE_NAME} USING GIST (geom);"))
+    print("   ✅ Spatial index created")
 
     # Grab a few sample rows back from DB
     sample = conn.execute(text(

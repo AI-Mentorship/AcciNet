@@ -4,7 +4,7 @@ import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import maplibregl from 'maplibre-gl';
 import 'maplibre-gl/dist/maplibre-gl.css';
 
-import { GOOGLE_API_KEY, HERE_API_KEY, MAPTILER_KEY } from '../lib/keys';
+import { GOOGLE_API_KEY, HERE_API_KEY, MAPTILER_KEY, TOM_TOM_KEY } from '../lib/keys';
 import type { GoogleRoute } from '../lib/routes';
 
 import RouteBox from './RouteBox';
@@ -16,6 +16,8 @@ import RoadsLayer from './RoadsLayer';
 import HexRiskLayer from './HexGridOverlay';
 import HeatmapRiskLayer from './HeatMapRiskLayer';
 import HereTrafficLayer from './HereTrafficLayer';
+import TomTomTrafficLayer from './TomTomTrafficLayer';
+import TomTomTrafficLegend from './TomTomTrafficLegend';
 
 type RouteItem = {
   coords: [number, number][];
@@ -49,6 +51,7 @@ const AcciNetMap: React.FC = () => {
   const [showGlow, setShowGlow] = useState(true);
   const [showRoadRisk, setShowRoadRisk] = useState(true);
   const [showTraffic, setShowTraffic] = useState(true);
+  const [showTomTomTraffic, setShowTomTomTraffic] = useState(false);
   const [cityGlowRadius, setCityGlowRadius] = useState(90);
   const [viewMode, setViewMode] = useState<'historical' | 'predictive'>('predictive');
   const [selectType, setSelectType] = useState<'segment' | 'points'>('segment');
@@ -304,6 +307,8 @@ const AcciNetMap: React.FC = () => {
             onToggleRoadRisk={setShowRoadRisk}
             showTraffic={showTraffic}
             onToggleTraffic={setShowTraffic}
+            showTomTomTraffic={showTomTomTraffic}
+            onToggleTomTomTraffic={setShowTomTomTraffic}
             cityGlowRadius={cityGlowRadius}
             onCityGlowRadiusChange={setCityGlowRadius}
             viewMode={viewMode}
@@ -320,6 +325,17 @@ const AcciNetMap: React.FC = () => {
               lon={mapCenter.lng}
               radius={Math.max(3000, 5000 / Math.max(1, mapZoom))}
             />
+          )}
+
+          {showTomTomTraffic && (
+            <>
+              <TomTomTrafficLayer
+                map={mapRef.current}
+                apiKey={TOM_TOM_KEY || ''}
+                enabled={showTomTomTraffic}
+              />
+              <TomTomTrafficLegend map={mapRef.current} enabled={showTomTomTraffic} />
+            </>
           )}
         </>
       )}

@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect } from 'react';
-import { Sun, Cloud, Hexagon, Layers, Map, Eye } from 'lucide-react';
+import { Sun, Cloud, Hexagon, Layers, Map, Eye, Navigation } from 'lucide-react';
 
 type Props = {
   open: boolean;
@@ -14,6 +14,8 @@ type Props = {
   onToggleRoadRisk: (v: boolean) => void;
   showTraffic: boolean;
   onToggleTraffic: (v: boolean) => void;
+  showTomTomTraffic: boolean;
+  onToggleTomTomTraffic: (v: boolean) => void;
   cityGlowRadius: number;
   onCityGlowRadiusChange: (value: number) => void;
   viewMode: 'historical' | 'predictive';
@@ -33,6 +35,8 @@ export default function Sidebar({
   onToggleRoadRisk,
   showTraffic,
   onToggleTraffic,
+  showTomTomTraffic,
+  onToggleTomTomTraffic,
   cityGlowRadius,
   onCityGlowRadiusChange,
   viewMode,
@@ -118,6 +122,15 @@ export default function Sidebar({
                 <Cloud size={14} /> Live Traffic Overlay
               </span>
               <SwitchIndicator active={showTraffic} />
+            </div>
+            <div
+              className="bg-white/4 border border-white/8 rounded-xl p-2.5 px-3 mb-2.5 flex items-center justify-between px-2.5 py-2 rounded-[10px] bg-white/5 border border-white/10 cursor-pointer transition-colors hover:bg-white/8"
+              onClick={() => onToggleTomTomTraffic(!showTomTomTraffic)}
+            >
+              <span className="flex items-center gap-1.5">
+                <Navigation size={14} /> TomTom Traffic Density
+              </span>
+              <SwitchIndicator active={showTomTomTraffic} />
             </div>
             <div className="bg-white/4 border border-white/8 rounded-xl p-2.5 px-3 mb-2.5">
               <div className="flex justify-between">

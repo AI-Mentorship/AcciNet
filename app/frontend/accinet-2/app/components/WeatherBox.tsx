@@ -227,16 +227,34 @@ async function autoInferWeather(
   signal?: AbortSignal
 ): Promise<Preset> {
   try {
-    const params = new URLSearchParams({ lat: String(lat), lng: String(lng) });
-    const res = await fetch(`/api/weather?${params}`, { signal });
+    const BACKEND_BASE = process.env.NEXT_PUBLIC_BACKEND_URL ?? 'http://127.0.0.1:8000';
+    const params = new URLSearchParams({ lat: String(lat), lon: String(lng) });
+    const res = await fetch(`${BACKEND_BASE}/weather?${params}`, { signal });
     if (res.ok) {
       const data = await res.json();
-      const summary =
-        data?.weatherCondition?.description?.text?.toLowerCase?.() ||
-        data?.weatherCondition?.type?.toLowerCase?.() ||
-        data?.currentConditions?.conditions?.toLowerCase?.() ||
-        '';
-      if (summary) return mapSummaryToPreset(summary);
+      // Backend returns: { current_weather?: { temperature?, weathercode?, windspeed? }, error?: string }
+      // Map weathercode to preset (Open-Meteo weather codes)
+      const weathercode = data?.current_weather?.weathercode;
+      if (weathercode !== undefined) {
+        // Open-Meteo weather codes: https://open-meteo.com/en/docs
+        // 0-1: Clear/Partly cloudy -> sunny
+        // 2: Cloudy -> cloudy
+        // 3: Overcast -> cloudy
+        // 45-48: Fog -> cloudy
+        // 51-67: Drizzle/Rain -> rainy
+        // 71-77: Snow -> snowy
+        // 80-99: Rain/Thunderstorm -> stormy
+        if (weathercode >= 80 || weathercode === 95 || weathercode === 96 || weathercode === 99) {
+          return WEATHER_PRESETS[3]; // Storm
+        } else if (weathercode >= 51 && weathercode <= 67) {
+          return WEATHER_PRESETS[2]; // Rain
+        } else if (weathercode >= 71 && weathercode <= 77) {
+          return WEATHER_PRESETS[1]; // Snow -> Cloudy (no snow preset)
+        } else if (weathercode >= 2 && weathercode <= 48) {
+          return WEATHER_PRESETS[1]; // Cloudy
+        }
+        return WEATHER_PRESETS[0]; // Sunny (default for clear)
+      }
     }
   } catch {}
   return fallbackPreset(lat, lng);
