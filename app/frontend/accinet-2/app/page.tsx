@@ -142,7 +142,7 @@ export default function LandingPage() {
             },
             links: {
               enable: true,
-              distance: 150,
+              distance: 120,
               opacity: 0.3,
             },
             move: {
@@ -152,8 +152,9 @@ export default function LandingPage() {
             number: {
               density: {
                 enable: true,
+                value_area: 800,
               },
-              value: 50,
+              value: 120,
             },
             opacity: {
               value: 0.5,
@@ -176,7 +177,11 @@ export default function LandingPage() {
         <div className="flex items-center justify-between gap-6 py-3.5 px-6 rounded-full bg-[rgba(6,13,24,0.85)] border border-white/7 backdrop-blur-2xl shadow-[0_30px_80px_rgba(5,5,10,0.45)]">
           <div className="flex items-center gap-3">
             <div className="w-12 h-12 rounded-2xl p-0.5 bg-gradient-to-br from-cyan-400/90 to-indigo-400/60 border border-white/15 shadow-[0_12px_30px_rgba(5,6,11,0.65)] grid place-items-center overflow-hidden" aria-hidden="true">
-              <div className="w-full h-full rounded-xl bg-gradient-to-br from-cyan-400 to-indigo-400" />
+              <img 
+                src="/AcciNet_Logo.svg" 
+                alt="AcciNet Logo" 
+                className="w-full h-full object-contain"
+              />
             </div>
             <div>
               <p className="m-0 font-semibold">AcciNet</p>

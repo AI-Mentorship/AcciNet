@@ -24,8 +24,13 @@
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
+  --font-sans: "Quicksand", system-ui, -apple-system, sans-serif;
   --font-mono: var(--font-geist-mono);
+}
+
+* {
+  font-family: "Quicksand", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  border-color: var(--glass-border-soft);
 }
 
 body {
@@ -34,14 +39,9 @@ body {
     radial-gradient(circle at 78% 18%, rgba(189, 130, 255, 0.22), transparent 55%),
     #04060b;
   color: var(--foreground);
-  font-family: var(--font-geist-sans), "Inter", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
   min-height: 100vh;
   -webkit-font-smoothing: antialiased;
   letter-spacing: 0.01em;
-}
-
-* {
-  border-color: var(--glass-border-soft);
 }
 
 .glass-panel {
