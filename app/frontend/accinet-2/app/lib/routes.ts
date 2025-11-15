@@ -37,6 +37,8 @@ export type GoogleRoute = {
   coords: [number, number][];
   durationSec: number;
   distanceMeters: number;
+  values?: number[]; // Risk values from backend (optional)
+  conditions?: Array<any>; // Condition data from backend (optional)
 };
 
 export async function fetchRoutesGoogle(
@@ -66,16 +68,32 @@ export async function fetchRoutesGoogle(
     distance: string;
     duration: string;
     summary: string;
+    values?: number[]; // Risk values from backend
+    conditions?: Array<{
+      lat: number;
+      lon: number;
+      weathercode?: number;
+      temperature?: number;
+      road_type?: string;
+      road_name?: string;
+    }>;
   }>;
+  
+  console.log(`[fetchRoutesGoogle] Backend returned ${Array.isArray(data) ? data.length : 0} route(s)`);
   
   if (!Array.isArray(data) || !data.length)
     throw new Error('No routes returned');
   
   // Convert backend RouteDetails format to GoogleRoute format
   // Need to decode polyline and parse distance/duration
-  return data
+  const routes = data
     .map((route) => {
       const coords = polyline.decode(route.polyline) as [number, number][];
+      if (!coords || coords.length < 2) {
+        console.warn('[fetchRoutesGoogle] Invalid polyline, skipping route');
+        return null;
+      }
+      
       // Parse duration (e.g., "12 mins" -> seconds)
       const durationMatch = route.duration.match(/(\d+(?:\.\d+)?)\s*(min|mins|hour|hours|hr|hrs)/i);
       const durationValue = durationMatch ? parseFloat(durationMatch[1]) : 0;
@@ -96,9 +114,21 @@ export async function fetchRoutesGoogle(
         coords,
         durationSec,
         distanceMeters,
+        // Store backend values and conditions for use in frontend
+        values: route.values,
+        conditions: route.conditions,
       };
     })
-    .filter((r) => Array.isArray(r.coords) && r.coords.length > 1);
+    .filter((r) => r !== null && Array.isArray(r.coords) && r.coords.length > 1) as Array<{
+      coords: [number, number][];
+      durationSec: number;
+      distanceMeters: number;
+      values?: number[];
+      conditions?: Array<any>;
+    }>;
+  
+  console.log(`[fetchRoutesGoogle] After processing: ${routes.length} valid route(s)`);
+  return routes;
 }
 
 

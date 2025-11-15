@@ -9,7 +9,13 @@ export type RouteParameters = {
 export interface RouteCondition {
     lat: number;
     lon: number;
-    weather: {
+    // New simplified format from backend (sampled conditions)
+    weathercode?: number;
+    temperature?: number;
+    road_type?: string;
+    road_name?: string;
+    // Legacy format (for backward compatibility)
+    weather?: {
         current_weather?: {
             temperature?: number;
             weathercode?: number;
@@ -17,7 +23,7 @@ export interface RouteCondition {
         };
         error?: string;
     };
-    road: {
+    road?: {
         surface: string;
         road_type: string;
         condition: string;

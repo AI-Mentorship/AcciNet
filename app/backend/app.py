@@ -152,81 +152,245 @@ async def root():
 async def get_street(street_lat,street_lon):
     )
 '''
-@app.get("/routes")
-async def get_routes(origin, destination, mode):
-    
+async def fetch_google_routes(origin: str, destination: str, mode: str) -> List[Dict]:
+    """Fetch routes from Google Maps API. Returns raw route data."""
     valid_modes = {"driving", "walking", "bicycling", "transit", "two_wheeler"}
     if mode not in valid_modes:
         mode = "driving"
+    
     try:
-        directions = gmaps.directions(origin, destination, mode=mode,alternatives=True)
+        directions = gmaps.directions(origin, destination, mode=mode, alternatives=True)
+        return directions if directions else []
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Failed to fetch directions: {str(e)}")
+
+
+async def fetch_weather_for_coords(coords: List[Tuple[float, float]], sample_interval: int = 8) -> Dict[str, Dict]:
+    """
+    Fetch weather data for sampled coordinates asynchronously.
+    Returns dict mapping grid_key -> weather_data.
+    """
+    if not coords:
+        return {}
+    
+    # Sample coordinates
+    sampled_indices = set()
+    sampled_indices.add(0)
+    sampled_indices.add(len(coords) - 1)
+    for i in range(0, len(coords), sample_interval):
+        sampled_indices.add(i)
+    
+    # Group sampled coordinates by 1km weather grid cells
+    weather_grid_map = defaultdict(list)
+    for idx in sorted(sampled_indices):
+        lat, lon = coords[idx]
+        weather_key = get_grid_key(lat, lon, grid_km=1.0)
+        weather_grid_map[weather_key].append((lat, lon))
+    
+    weather_cache = {}
+    weather_tasks = []
+    
+    # Check cache and prepare fetch tasks
+    for weather_key, coord_list in weather_grid_map.items():
+        cached_weather = await redis_client.get(f"weather:{weather_key}")
+        if cached_weather:
+            weather_cache[weather_key] = json.loads(cached_weather)
+        else:
+            grid_lat, grid_lon = map(float, weather_key.split(','))
+            weather_tasks.append((weather_key, grid_lat, grid_lon))
+    
+    # Fetch uncached weather in parallel
+    if weather_tasks:
+        async def fetch_weather_task(weather_key, grid_lat, grid_lon):
+            weather_data = await fetch_weather(grid_lat, grid_lon, use_grid=False)
+            await redis_client.set(f"weather:{weather_key}", json.dumps(weather_data), ex=3600)
+            return weather_key, weather_data
+        
+        weather_results = await asyncio.gather(
+            *[fetch_weather_task(key, lat, lon) for key, lat, lon in weather_tasks],
+            return_exceptions=True
+        )
+        
+        for result in weather_results:
+            if isinstance(result, Exception):
+                continue
+            weather_key, weather_data = result
+            weather_cache[weather_key] = weather_data
+    
+    return weather_cache
+
+
+async def fetch_roads_for_coords(coords: List[Tuple[float, float]], sample_interval: int = 8) -> List[Optional[Dict]]:
+    """
+    Fetch road data for sampled coordinates asynchronously.
+    Returns list of road info dicts (one per sampled coordinate).
+    """
+    if not coords:
+        return []
+    
+    # Sample coordinates
+    sampled_indices = set()
+    sampled_indices.add(0)
+    sampled_indices.add(len(coords) - 1)
+    for i in range(0, len(coords), sample_interval):
+        sampled_indices.add(i)
+    
+    sampled_coords = [coords[idx] for idx in sorted(sampled_indices)]
+    print(f"[fetch_roads_for_coords] Fetching roads for {len(sampled_coords)} sampled coordinates")
+    
+    # Fetch roads for all sampled coordinates in parallel
+    # Increase search radius to 0.5km to ensure we find roads
+    nearest_roads = await fetch_nearest_roads_for_coords(sampled_coords, search_radius_km=0.5)
+    
+    # Format road info
+    road_info_list = []
+    found_count = 0
+    for idx, road in enumerate(nearest_roads):
+        if road and isinstance(road, dict):
+            # Extract road data from database result
+            road_type = road.get("fclass")
+            name = road.get("name")
+            ref = road.get("ref")
+            
+            # Use ref if name is not available
+            if not name and ref:
+                name = ref
+            if not name:
+                name = "Unnamed Road"
+            
+            # Default to "unknown" if fclass is missing
+            if not road_type:
+                road_type = "unknown"
+            
+            condition = "poor" if road_type in ["track", "path", "footway", "cycleway"] else "good"
+            
+            road_info_list.append({
+                "surface": "asphalt" if condition == "good" else "unknown",
+                "road_type": road_type,
+                "condition": condition,
+                "name": name
+            })
+            found_count += 1
+        else:
+            # No road found for this coordinate
+            lat, lon = sampled_coords[idx] if idx < len(sampled_coords) else (0, 0)
+            print(f"[fetch_roads_for_coords] No road found for coordinate ({lat:.5f}, {lon:.5f})")
+            road_info_list.append({
+                "surface": "unknown",
+                "road_type": "unknown",
+                "condition": "unknown",
+                "name": "Unknown Road"
+            })
+    
+    print(f"[fetch_roads_for_coords] Found roads for {found_count}/{len(sampled_coords)} coordinates")
+    return road_info_list
+
+
+async def get_sampled_conditions(encoded_polyline: str, sample_interval: int = 8) -> List[Dict]:
+    """
+    Get weather and road conditions for sampled coordinates only.
+    Returns minimal condition data for sampled points.
+    """
+    coords = polyline.decode(encoded_polyline)
+    if not coords:
+        return []
+    
+    # Sample coordinates
+    sampled_indices = sorted(set([0, len(coords) - 1] + list(range(0, len(coords), sample_interval))))
+    sampled_coords = [(coords[idx][0], coords[idx][1]) for idx in sampled_indices]
+    
+    # Fetch weather and roads in parallel
+    weather_cache, nearest_roads = await asyncio.gather(
+        fetch_weather_for_coords(coords, sample_interval),
+        fetch_roads_for_coords(coords, sample_interval),
+        return_exceptions=True
+    )
+    
+    # Handle errors gracefully
+    if isinstance(weather_cache, Exception):
+        print(f"Error fetching weather: {weather_cache}")
+        weather_cache = {}
+    if isinstance(nearest_roads, Exception):
+        print(f"Error fetching roads: {nearest_roads}")
+        nearest_roads = []
+    
+    # Build minimal condition objects for sampled points only
+    conditions = []
+    for idx, (lat, lon) in enumerate(sampled_coords):
+        weather_key = get_grid_key(lat, lon, grid_km=1.0)
+        weather = weather_cache.get(weather_key, {})
+        road = nearest_roads[idx] if idx < len(nearest_roads) else {
+            "surface": "unknown", "road_type": "unknown", "condition": "unknown", "name": "Unknown Road"
+        }
+        
+        # Minimal condition object - only essential data (full key names for maintainability)
+        conditions.append({
+            "lat": round(lat, 5),  # Reduce precision to save space
+            "lon": round(lon, 5),
+            "weathercode": weather.get("current_weather", {}).get("weathercode"),
+            "temperature": weather.get("current_weather", {}).get("temperature"),
+            "road_type": road.get("road_type"),
+            "road_name": road.get("name")
+        })
+    
+    return conditions
+
+
+@app.get("/routes")
+async def get_routes(origin, destination, mode):
+    """
+    Get routes from Google Maps API with optional sampled conditions.
+    Route fetching happens first, then conditions are fetched asynchronously.
+    """
+    # Step 1: Fetch routes from Google Maps (synchronous API call)
+    directions = await fetch_google_routes(origin, destination, mode)
     
     if not directions:
         return []
     
+    max_routes = min(3, len(directions))
     routes = []
     
-    save_schema(directions)
-    # Process up to 3 routes (Google Maps may return fewer alternatives)
-    max_routes = min(3, len(directions))
-    
+    # Step 2: Process each route
     for route_idx, route in enumerate(directions[:max_routes]):
         try:
-            encoded_polyline = route['overview_polyline']['points']  # Get the polyline
-            
-            # Decode polyline to get coordinate points
+            encoded_polyline = route['overview_polyline']['points']
             decoded_coords = polyline.decode(encoded_polyline)
             
             if not decoded_coords:
-                print(f"Warning: Route {route_idx + 1} has empty polyline, skipping")
                 continue
             
-            # Generate random values (0.0-1.0) for each coordinate point
-            values = [random.random() for _ in decoded_coords]
+            if not route.get('legs'):
+                continue
             
-            # Get weather and road conditions for each coordinate
-            # If this fails, we'll still return the route but without conditions
+            leg = route['legs'][0]
+            
+            # Build base route data (fast)
+            route_data = {
+                "distance": leg['distance']['text'],
+                "duration": leg['duration']['text'],
+                "polyline": encoded_polyline,
+                "summary": route.get('summary', 'Direct Route'),
+                "values": [random.random() for _ in decoded_coords],  # Risk values for gradient
+            }
+            
+            # Step 3: Fetch conditions asynchronously (only sampled points)
             try:
-                conditions = await get_route_conditions(encoded_polyline)
+                conditions = await get_sampled_conditions(encoded_polyline, sample_interval=8)
+                route_data["conditions"] = conditions
             except Exception as e:
                 print(f"Warning: Failed to get conditions for route {route_idx + 1}: {e}")
-                # Return empty conditions array so route is still usable
-                conditions = []
+                route_data["conditions"] = []
             
-            # Get the first leg of the journey for total distance/duration
-            if route['legs']:
-                leg = route['legs'][0]
-                
-                # Extract distance and duration from the leg
-                distance_text = leg['distance']['text']
-                duration_text = leg['duration']['text']
-                
-                routes.append({
-                    "distance": distance_text,
-                    "duration": duration_text,
-                    "polyline": encoded_polyline,
-                    "summary": route.get('summary', 'Direct Route'),  # descriptive summary
-                    "values": values,  # Random values for gradient visualization
-                    "conditions": conditions  # Weather and road conditions (may be empty if fetch failed)
-                })
-            else:
-                print(f"Warning: Route {route_idx + 1} has no legs, skipping")
-                continue
+            routes.append(route_data)
                 
         except Exception as e:
             print(f"Error processing route {route_idx + 1}: {e}")
-            import traceback
-            traceback.print_exc()
-            # Continue with other routes even if one fails
             continue
     
     if not routes:
         raise HTTPException(status_code=500, detail="Failed to process any routes")
     
-    print(f"Successfully processed {len(routes)} route(s) out of {max_routes} requested")
-    # Return all successfully processed routes (up to 3)
     return routes
 
 #resolve coordinate to a km^2 grid 
@@ -546,8 +710,8 @@ async def fetch_nearest_road_for_coord(lat: float, lon: float, search_radius_km:
 async def _fetch_nearest_road_query(lat: float, lon: float, search_radius_km: float, conn) -> Optional[Dict]:
     """Internal helper to execute the PostGIS query for a single coordinate."""
     radius_meters = search_radius_km * 1000
-    radius_degrees = radius_meters / 111320.0  # Approximate conversion
     
+    # Use geography casting for accurate distance calculations in meters
     query = text("""
     SELECT 
         osm_id,
@@ -558,15 +722,15 @@ async def _fetch_nearest_road_query(lat: float, lon: float, search_radius_km: fl
         maxspeed,
         bridge,
         tunnel,
-        ST_Distance_Sphere(
-            geom,
-            ST_SetSRID(ST_MakePoint(:lon, :lat), 4326)
+        ST_Distance(
+            geom::geography,
+            ST_SetSRID(ST_MakePoint(:lon, :lat), 4326)::geography
         ) as distance_meters
     FROM roads
     WHERE ST_DWithin(
-        geom,
-        ST_SetSRID(ST_MakePoint(:lon, :lat), 4326),
-        :radius_degrees
+        geom::geography,
+        ST_SetSRID(ST_MakePoint(:lon, :lat), 4326)::geography,
+        :radius_meters
     )
     ORDER BY distance_meters
     LIMIT 1
@@ -575,7 +739,7 @@ async def _fetch_nearest_road_query(lat: float, lon: float, search_radius_km: fl
     result = await conn.execute(query, {
         "lat": lat,
         "lon": lon,
-        "radius_degrees": radius_degrees
+        "radius_meters": radius_meters
     })
     row = result.fetchone()
     
