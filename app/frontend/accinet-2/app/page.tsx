@@ -152,7 +152,6 @@ export default function LandingPage() {
             number: {
               density: {
                 enable: true,
-                value_area: 800,
               },
               value: 120,
             },
@@ -174,15 +173,19 @@ export default function LandingPage() {
       <div className="absolute -bottom-50 -right-25 w-[420px] h-[420px] blur-[140px] opacity-35 z-0 bg-purple-500" aria-hidden />
 
       <header className="sticky top-4 z-10 mx-auto mb-[clamp(2rem,6vw,4rem)] max-w-[1100px]">
-        <div className="flex items-center justify-between gap-6 py-3.5 px-6 rounded-full bg-[rgba(6,13,24,0.85)] border border-white/7 backdrop-blur-2xl shadow-[0_30px_80px_rgba(5,5,10,0.45)]">
+        <div className="flex items-center justify-between gap-6 py-3.5 px-6 rounded-full bg-[rgba(12,18,32,0.92)] border border-white/12 backdrop-blur-2xl shadow-[0_30px_80px_rgba(5,5,10,0.45)]">
           <div className="flex items-center gap-3">
-            <div className="w-12 h-12 rounded-2xl p-0.5 bg-gradient-to-br from-cyan-400/90 to-indigo-400/60 border border-white/15 shadow-[0_12px_30px_rgba(5,6,11,0.65)] grid place-items-center overflow-hidden" aria-hidden="true">
-              <img 
-                src="/AcciNet_Logo.svg" 
-                alt="AcciNet Logo" 
-                className="w-full h-full object-contain"
-              />
-            </div>
+            <img 
+              src="/AcciNet_Logo.svg" 
+              alt="AcciNet Logo" 
+              className="object-contain"
+              style={{ 
+                width: '54px', 
+                height: '48px',
+                transform: 'scale(1.8)',
+                transformOrigin: 'center'
+              }}
+            />
             <div>
               <p className="m-0 font-semibold">AcciNet</p>
               <span className="block text-xs text-[rgba(240,243,255,0.65)]">Crash network intelligence</span>
