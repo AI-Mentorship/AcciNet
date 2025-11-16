@@ -93,7 +93,18 @@ const metrics: Metric[] = [
   { value: '94%', label: 'confidence on critical corridors' },
 ];
 
-const badges = ['TxDOT Safety', 'TTI Labs', 'Gulf Freight', 'Civic Ops', 'Austin Innovation'];
+const badges = ['TxDOT', 'Open Street Maps', 'PostGIS', 'MapLibre', 'Google Maps', 'MapTiler'];
+
+const handleSmoothScroll = (e: React.MouseEvent<HTMLAnchorElement>) => {
+  const href = e.currentTarget.getAttribute('href');
+  if (href && href.startsWith('#')) {
+    e.preventDefault();
+    const element = document.getElementById(href.substring(1));
+    if (element) {
+      element.scrollIntoView({ behavior: 'smooth' });
+    }
+  }
+};
 
 export default function LandingPage() {
   const year = new Date().getFullYear();
@@ -126,7 +137,7 @@ export default function LandingPage() {
   }, []);
 
   return (
-    <div className="relative min-h-screen p-[clamp(1rem,4vw,2.5rem)] bg-[radial-gradient(circle_at_20%_20%,rgba(64,196,255,0.18),transparent_55%),radial-gradient(circle_at_80%_0%,rgba(189,130,255,0.17),transparent_50%),#04060b] text-[#f0f3ff] overflow-x-hidden overflow-y-auto no-scrollbar">
+    <div className="no-scrollbar relative min-h-screen p-[clamp(1rem,4vw,2.5rem)] bg-[radial-gradient(circle_at_20%_20%,rgba(64,196,255,0.18),transparent_55%),radial-gradient(circle_at_80%_0%,rgba(189,130,255,0.17),transparent_50%),#04060b] text-[#f0f3ff] overflow-x-hidden">
       <Particles
         id="tsparticles"
         options={{
@@ -167,13 +178,13 @@ export default function LandingPage() {
           },
           detectRetina: true,
         }}
-        className="absolute top-0 left-0 w-full h-full z-0"
+        className="absolute top-0 left-0 w-full h-full z-0 pointer-events-none"
       />
-      <div className="absolute -top-40 -left-30 w-[420px] h-[420px] blur-[140px] opacity-35 z-0 bg-cyan-400" aria-hidden />
-      <div className="absolute -bottom-50 -right-25 w-[420px] h-[420px] blur-[140px] opacity-35 z-0 bg-purple-500" aria-hidden />
+      <div className="absolute -top-40 -left-30 w-[420px] h-[420px] blur-[140px] opacity-35 z-0 bg-cyan-400 pointer-events-none" aria-hidden />
+      <div className="absolute -bottom-50 -right-25 w-[420px] h-[420px] blur-[140px] opacity-35 z-0 bg-purple-500 pointer-events-none" aria-hidden />
 
-      <header className="sticky top-4 z-10 mx-auto mb-[clamp(2rem,6vw,4rem)] max-w-[1100px]">
-        <div className="flex items-center justify-between gap-6 py-3.5 px-6 rounded-full bg-[rgba(12,18,32,0.92)] border border-white/12 backdrop-blur-2xl shadow-[0_30px_80px_rgba(5,5,10,0.45)]">
+      <header className="fixed top-4 left-0 right-0 z-50">
+        <div className="flex items-center justify-between gap-6 py-3.5 px-6 rounded-full bg-[rgba(12,18,32,0.92)] border border-cyan-400/50 backdrop-blur-2xl shadow-[0_0_20px_rgba(6,182,212,1)] max-w-[1100px] mx-auto">
           <div className="flex items-center gap-3">
             <img 
               src="/AcciNet_Logo.svg" 
@@ -192,32 +203,36 @@ export default function LandingPage() {
             </div>
           </div>
           <nav className="flex items-center gap-5 text-sm text-[rgba(240,243,255,0.75)]" aria-label="Primary">
-            <a href="#platform" className="text-inherit no-underline transition-colors hover:text-white">Platform</a>
-            <a href="#features" className="text-inherit no-underline transition-colors hover:text-white">Layers</a>
-            <a href="#pipeline" className="text-inherit no-underline transition-colors hover:text-white">Pipeline</a>
-            <Link href="/density" className="text-inherit no-underline transition-colors hover:text-white">Historical</Link>
-            <a href="#contact" className="text-inherit no-underline transition-colors hover:text-white">Contact</a>
+            <a href="#platform" onClick={handleSmoothScroll} className="text-inherit no-underline transition-colors hover:text-white">Platform</a>
+            <a href="#features" onClick={handleSmoothScroll} className="text-inherit no-underline transition-colors hover:text-white">Layers</a>
+            <a href="#pipeline" onClick={handleSmoothScroll} className="text-inherit no-underline transition-colors hover:text-white">Pipeline</a>
+            <a href="#contact" onClick={handleSmoothScroll} className="text-inherit no-underline transition-colors hover:text-white">Contact</a>
+            <a href="#references" onClick={handleSmoothScroll} className="text-inherit no-underline transition-colors hover:text-white">References</a>
           </nav>
           <div className="flex items-center gap-3">
-            <a href="https://github.com/" target="_blank" rel="noreferrer" className="text-[rgba(240,243,255,0.85)] no-underline text-sm">
+            <a href="https://github.com/AI-Mentorship/AcciNet" target="_blank" rel="noreferrer" className="text-[rgba(240,243,255,0.85)] no-underline text-sm">
               Docs
             </a>
             <Link className="inline-flex items-center gap-1.5 py-3 px-5.5 rounded-full font-semibold no-underline text-sm border border-transparent transition-all bg-gradient-to-r from-gray-100 to-blue-100 text-[#05060b] shadow-[0_15px_40px_rgba(17,25,40,0.35)] hover:-translate-y-0.5 hover:shadow-[0_18px_50px_rgba(17,25,40,0.45)]" href="/map">
               Launch map
               <ArrowRight size={18} aria-hidden />
             </Link>
+            <Link className="inline-flex items-center gap-1.5 py-3 px-5.5 rounded-full font-semibold no-underline text-sm border border-transparent transition-all bg-gradient-to-r from-gray-100 to-blue-100 text-[#05060b] shadow-[0_15px_40px_rgba(17,25,40,0.35)] hover:-translate-y-0.5 hover:shadow-[0_18px_50px_rgba(17,25,40,0.45)]" href="/density">
+              Historical view
+              <ArrowRight size={18} aria-hidden />
+            </Link>
           </div>
         </div>
       </header>
 
-      <main className="relative z-[1] flex flex-col gap-[clamp(2.5rem,6vw,4.5rem)] max-w-[1200px] mx-auto">
-        <section className="grid grid-cols-[repeat(auto-fit,minmax(280px,1fr))] gap-[clamp(1.5rem,4vw,4rem)] items-center" id="platform">
+      <main className="relative z-[1] flex flex-col gap-[clamp(2.5rem,6vw,4.5rem)] max-w-[1200px] mx-auto pt-28 ">
+        <section className="grid grid-cols-[repeat(auto-fit,minmax(280px,1fr))] gap-[clamp(1.5rem,4vw,4rem)] items-center scroll-mt-28" id="platform">
           <div
             className="glass-panel glass-panel--strong opacity-0 translate-y-7 transition-all duration-700 ease-out p-6 lg:p-8 text-center lg:text-left"
             data-fade
           >
             <p className="text-xs tracking-[0.4em] uppercase text-[rgba(240,243,255,0.65)] m-0">Texas-wide crash forecasting</p>
-            <h1 className="text-[clamp(2.25rem,4vw,3.8rem)] my-1.5 mb-4 leading-tight m-0">Predict risk. Reroute with confidence.</h1>
+            <h1 className="text-[clamp(2.25rem,4vw,3.8rem)] my-1.5 mb-4 leading-tight m-0">Map the Odds.</h1>
             <p className="text-[rgba(240,243,255,0.75)] text-base leading-relaxed max-w-[520px] m-0 mx-auto lg:mx-0">
               AcciNet fuses live traffic, weather, and historical crash intelligence to highlight safer
               corridors before an incident builds. Switch between gradient routes and hex overlays without
@@ -232,7 +247,7 @@ export default function LandingPage() {
                 Historical view
                 <ArrowRight size={18} aria-hidden />
               </Link>
-              <a className="glass-chip inline-flex items-center gap-1.5 no-underline" href="#features">
+              <a className="glass-chip inline-flex items-center gap-1.5 no-underline" href="#features" onClick={handleSmoothScroll}>
                 See capabilities
               </a>
             </div>
@@ -280,24 +295,7 @@ export default function LandingPage() {
           </div>
         </section>
 
-        <section className="glass-panel glass-panel--strong rounded-3xl p-6 pb-12 text-center text-[rgba(240,243,255,0.75)] opacity-0 translate-y-7 transition-all duration-700 ease-out flex flex-col items-center gap-6" data-fade>
-          <p className="-mb-8 max-w-[640px]">Built with transportation labs, agencies, and civic engineering teams.</p>
-          <div className="flex flex-wrap justify-center gap-3 " role="list">
-            {badges.map((badge, index) => (
-              <div
-                key={badge}
-                className="glass-chip opacity-0 translate-y-7 transition-all duration-700 ease-out"
-                role="listitem"
-                data-fade
-                style={{ transitionDelay: `${150 + index * 40}ms` }}
-              >
-                {badge}
-              </div>
-            ))}
-          </div>
-        </section>
-
-        <section className="flex flex-col gap-8 mb-8" id="features">
+        <section className="flex flex-col gap-8 mb-8 scroll-mt-28" id="features">
           <div className="rounded-3xl glass-panel glass-panel--strong opacity-0 translate-y-7 transition-all duration-700 ease-out p-6 lg:p-8 text-center lg:text-left" data-fade>
             <p className="text-xs tracking-[0.4em] uppercase text-[rgba(240,243,255,0.65)] m-0">Precision overlays</p>
             <h2 className="text-[clamp(1.8rem,3vw,2.6rem)] my-2 m-0">Layers that explain the network at a glance.</h2>
@@ -327,7 +325,7 @@ export default function LandingPage() {
           </div>
         </section>
 
-        <section className="grid gap-6 lg:grid-cols-2" id="pipeline">
+        <section className="grid gap-6 lg:grid-cols-2 scroll-mt-28" id="pipeline">
           <div
             className="glass-panel glass-panel--strong rounded-[1.8rem] p-6 lg:p-8 opacity-0 translate-y-7 transition-all duration-700 ease-out flex flex-col h-full"
             data-fade
@@ -376,34 +374,42 @@ export default function LandingPage() {
           </div>
         </section>
 
-        <section className="glass-panel glass-panel--strong mt-4 p-[clamp(1.5rem,3vw,2.5rem)] rounded-3xl flex flex-wrap justify-between gap-5 items-center opacity-0 translate-y-7 transition-all duration-700 ease-out" id="contact" data-fade>
+        <section className="glass-panel glass-panel--strong mt-4 p-[clamp(1.5rem,3vw,2.5rem)] rounded-3xl flex flex-wrap justify-between gap-5 items-center opacity-0 translate-y-7 transition-all duration-700 ease-out scroll-mt-28" id="contact" data-fade>
           <div>
             <p className="text-xs tracking-[0.4em] uppercase text-[rgba(240,243,255,0.65)] m-0">Deploy AcciNet</p>
             <h3 className="m-0 my-2">Bring safer routing to your network.</h3>
             <p className="m-0 mt-1.5 text-[rgba(240,243,255,0.85)] max-w-[540px]">Embed the map, stream the data, or partner with us on corridor pilots across Texas.</p>
           </div>
           <div className="flex gap-3 flex-wrap">
-            <Link className="glass-button inline-flex items-center gap-1.5 py-3 px-5.5 font-semibold no-underline text-sm" href="/map">
-              Launch map
-              <ArrowRight size={18} aria-hidden />
-            </Link>
-            <Link className="glass-button inline-flex items-center gap-1.5 py-3 px-5.5 font-semibold no-underline text-sm" href="/density">
-              Historical analysis
-              <ArrowRight size={18} aria-hidden />
-            </Link>
-            <a className="glass-chip inline-flex items-center gap-1.5 no-underline" href="mailto:team@accinet.ai">
+            <a className="glass-button text-sm font-semibold no-underline inline-flex items-center gap-1.5 py-3 px-5.5" href="mailto:team@accinet.ai">
               Contact team
             </a>
           </div>
         </section>
-      </main>
 
+      <section className="glass-panel glass-panel--strong rounded-3xl p-6 pb-12 text-center text-[rgba(240,243,255,0.75)] opacity-0 translate-y-7 transition-all duration-700 ease-out flex flex-col items-center gap-6 scroll-mt-28" id="references" data-fade>
+        <p className="max-w-[800px]">Built with TXDot data, Open Street Map data, PostGIS, MapLibre, Google Maps, and MapTiler.</p>
+        <div className="flex flex-wrap justify-center gap-3 " role="list">
+          {badges.map((badge, index) => (
+            <div
+              key={badge}
+              className="glass-chip opacity-0 translate-y-7 transition-all duration-700 ease-out"
+              role="listitem"
+              data-fade
+              style={{ transitionDelay: `${150 + index * 40}ms` }}
+            >
+              {badge}
+            </div>
+          ))}
+        </div>
+      </section>
+      </main>
       <footer className="mt-12 pt-8 border-t border-white/5 flex justify-between flex-wrap gap-2 text-sm text-[rgba(240,243,255,0.65)]">
         <span>© {year} AcciNet</span>
         <div>
           <a href="mailto:press@accinet.ai" className="text-inherit no-underline ml-4 hover:text-white">Press</a>
           <Link href="/map" className="text-inherit no-underline ml-4 hover:text-white">Live map</Link>
-          <a href="https://github.com/" target="_blank" rel="noreferrer" className="text-inherit no-underline ml-4 hover:text-white">
+          <a href="https://github.com/AI-Mentorship/AcciNet" target="_blank" rel="noreferrer" className="text-inherit no-underline ml-4 hover:text-white">
             GitHub
           </a>
         </div>
