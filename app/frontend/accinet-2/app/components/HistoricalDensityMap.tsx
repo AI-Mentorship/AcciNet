@@ -29,6 +29,7 @@ const HistoricalDensityMap: React.FC = () => {
   const [selectedRange, setSelectedRange] = useState<{ start: number; end: number } | null>(null);
   const [heatmapRadius, setHeatmapRadius] = useState(50);
   const [heatmapOpacity, setHeatmapOpacity] = useState(0.7);
+  const [updating, setUpdating] = useState(false);
 
   const availableYears = useMemo(() => getAvailableYears(data), [data]);
   const filteredData = useMemo(() => {
@@ -254,6 +255,30 @@ const HistoricalDensityMap: React.FC = () => {
     });
   }, [availableYears]);
 
+  // Handle radius changes with loading indicator
+  const handleRadiusChange = useCallback((value: number) => {
+    setHeatmapRadius(value);
+    setUpdating(true);
+  }, []);
+
+  // Handle opacity changes with loading indicator
+  const handleOpacityChange = useCallback((value: number) => {
+    setHeatmapOpacity(value);
+    setUpdating(true);
+  }, []);
+
+  // Handle year range changes with loading indicator
+  const handleRangeChange = useCallback((start: number, end: number) => {
+    setUpdating(true);
+    setSelectedRange({ start, end });
+  }, []);
+
+  // Handle update completion from the heatmap layer
+  const handleUpdateComplete = useCallback(() => {
+    console.log('Update complete');
+    setUpdating(false);
+  }, []);
+
   return (
     <div
       style={{
@@ -270,7 +295,7 @@ const HistoricalDensityMap: React.FC = () => {
           <TimeSeriesSelector
             years={availableYears}
             range={selectedRange}
-            onRangeChange={(start, end) => setSelectedRange({ start, end })}
+            onRangeChange={handleRangeChange}
             className="pointer-events-auto"
           />
         </div>
@@ -294,7 +319,7 @@ const HistoricalDensityMap: React.FC = () => {
                   max={100}
                   step={5}
                   value={heatmapRadius}
-                  onChange={(e) => setHeatmapRadius(Number(e.target.value))}
+                  onChange={(e) => handleRadiusChange(Number(e.target.value))}
                   className="w-full"
                 />
               </div>
@@ -310,7 +335,7 @@ const HistoricalDensityMap: React.FC = () => {
                   max={1}
                   step={0.05}
                   value={heatmapOpacity}
-                  onChange={(e) => setHeatmapOpacity(Number(e.target.value))}
+                  onChange={(e) => handleOpacityChange(Number(e.target.value))}
                   className="w-full"
                 />
               </div>
@@ -339,13 +364,53 @@ const HistoricalDensityMap: React.FC = () => {
         </div>
       )}
 
+      {/* Legend */}
+      {mapLoaded && (
+        <div className="fixed bottom-4 left-4 z-[2147483647] pointer-events-none">
+          <div className="glass-panel glass-panel--strong rounded-2xl p-4 pointer-events-auto w-[240px]">
+            <h3 className="text-sm font-semibold text-white mb-3 m-0">Crash Density</h3>
+            
+            <div className="space-y-2">
+              <div className="flex items-center gap-2">
+                <div className="w-4 h-4 rounded" style={{ backgroundColor: '#0ea5e9' }} />
+                <span className="text-xs text-gray-300">Minimal</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <div className="w-4 h-4 rounded" style={{ backgroundColor: '#22d3ee' }} />
+                <span className="text-xs text-gray-300">Very Low</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <div className="w-4 h-4 rounded" style={{ backgroundColor: '#60a5fa' }} />
+                <span className="text-xs text-gray-300">Low</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <div className="w-4 h-4 rounded" style={{ backgroundColor: '#facc15' }} />
+                <span className="text-xs text-gray-300">Moderate</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <div className="w-4 h-4 rounded" style={{ backgroundColor: '#f97316' }} />
+                <span className="text-xs text-gray-300">High</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <div className="w-4 h-4 rounded" style={{ backgroundColor: '#ef4444' }} />
+                <span className="text-xs text-gray-300">Very High</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <div className="w-4 h-4 rounded" style={{ backgroundColor: '#dc2626' }} />
+                <span className="text-xs text-gray-300">Extreme</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Loading/Error States */}
-      {loading && (
+      {(loading || updating) && (
         <div className="fixed inset-0 z-[2147483648] flex items-center justify-center pointer-events-none">
           <div className="glass-panel glass-panel--strong rounded-2xl p-6 pointer-events-auto">
             <div className="text-white text-center">
               <div className="animate-spin w-8 h-8 border-2 border-indigo-500 border-t-transparent rounded-full mx-auto mb-3" />
-              <p className="text-sm">Loading historical crash data...</p>
+              <p className="text-sm">{loading ? 'Loading historical crash data...' : 'Updating visualization...'}</p>
             </div>
           </div>
         </div>
@@ -367,6 +432,7 @@ const HistoricalDensityMap: React.FC = () => {
           data={filteredData}
           radiusPx={heatmapRadius}
           opacity={heatmapOpacity}
+          onUpdateComplete={handleUpdateComplete}
         />
       )}
     </div>
@@ -374,4 +440,3 @@ const HistoricalDensityMap: React.FC = () => {
 };
 
 export default HistoricalDensityMap;
-

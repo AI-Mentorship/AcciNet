@@ -10,6 +10,7 @@ type Props = {
   data: HistoricalCellRecord[];
   radiusPx?: number;
   opacity?: number;
+  onUpdateComplete?: () => void;
 };
 
 type State = {
@@ -21,6 +22,8 @@ export default class HistoricalCrashDensityLayer extends React.Component<Props, 
   private sourceId = `historical-crash-heat-src-${this.uid}`;
   private layerId = `historical-crash-heat-${this.uid}`;
   private raf?: number;
+  private onRenderEvent?: (e: any) => void;
+  private onDataEvent?: () => void;
 
   state: State = {
     maxDensity: 1,
@@ -30,14 +33,13 @@ export default class HistoricalCrashDensityLayer extends React.Component<Props, 
   private onZoomEnd = () => this.scheduleUpdate();
   private onStyleLoad = () => this.scheduleUpdate(true);
 
-
   componentDidUpdate(prev: Props) {
     const { enabled, data, map } = this.props;
     if (!enabled) {
       this.teardown();
       return;
     }
-    if (prev.enabled !== enabled || prev.data !== data) {
+    if (prev.enabled !== enabled || prev.data !== data || prev.radiusPx !== this.props.radiusPx || prev.opacity !== this.props.opacity) {
       // Recalculate max density when data changes using reduce to avoid stack overflow
       const maxDensity =
         data.length > 0
@@ -76,6 +78,8 @@ export default class HistoricalCrashDensityLayer extends React.Component<Props, 
     map.off('style.load', this.onStyleLoad);
     map.off('moveend', this.onMoveEnd);
     map.off('zoomend', this.onZoomEnd);
+    if (this.onRenderEvent) map.off('render', this.onRenderEvent);
+    if (this.onDataEvent) map.off('data', this.onDataEvent);
     if (this.raf) cancelAnimationFrame(this.raf);
     this.teardown();
   }
@@ -107,6 +111,37 @@ export default class HistoricalCrashDensityLayer extends React.Component<Props, 
     src.setData({ type: 'FeatureCollection', features });
 
     if (map.getLayer(this.layerId)) map.moveLayer(this.layerId);
+
+    // Wait for render + data events to ensure heatmap is fully rendered
+    let renderFired = false;
+    let dataFired = false;
+
+    const checkComplete = () => {
+      if (renderFired && dataFired) {
+        this.props.onUpdateComplete?.();
+        cleanup();
+      }
+    };
+
+    const onRenderEvent = () => {
+      renderFired = true;
+      checkComplete();
+    };
+
+    const onDataEvent = () => {
+      dataFired = true;
+      checkComplete();
+    };
+
+    const cleanup = () => {
+      map.off('render', onRenderEvent);
+      map.off('data', onDataEvent);
+    };
+
+    map.once('render', onRenderEvent);
+    map.once('data', onDataEvent);
+    
+    this.onRenderEvent = cleanup;
   }
 
   private ensureLayer() {
@@ -221,4 +256,3 @@ export default class HistoricalCrashDensityLayer extends React.Component<Props, 
     }));
   }
 }
-
