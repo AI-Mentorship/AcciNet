@@ -227,10 +227,7 @@ export default function LandingPage() {
 
       <main className="relative z-[1] flex flex-col gap-[clamp(2.5rem,6vw,4.5rem)] max-w-[1200px] mx-auto pt-28 ">
         <section className="grid grid-cols-[repeat(auto-fit,minmax(280px,1fr))] gap-[clamp(1.5rem,4vw,4rem)] items-center scroll-mt-28" id="platform">
-          <div
-            className="glass-panel glass-panel--strong opacity-0 translate-y-7 transition-all duration-700 ease-out p-6 lg:p-8 text-center lg:text-left"
-            data-fade
-          >
+          <div className="glass-panel glass-panel--strong opacity-0 translate-y-7 p-6 lg:p-8 text-center lg:text-left" data-fade>
             <p className="text-xs tracking-[0.4em] uppercase text-[rgba(240,243,255,0.65)] m-0">Texas-wide crash forecasting</p>
             <h1 className="text-[clamp(2.25rem,4vw,3.8rem)] my-1.5 mb-4 leading-tight m-0">Map the Odds.</h1>
             <p className="text-[rgba(240,243,255,0.75)] text-base leading-relaxed max-w-[520px] m-0 mx-auto lg:mx-0">
@@ -261,7 +258,7 @@ export default function LandingPage() {
             </div>
           </div>
 
-          <div className="flex justify-center opacity-0 translate-y-7 transition-all duration-700 ease-out delay-[120ms]" aria-hidden data-fade>
+          <div className="flex justify-center opacity-0 translate-y-7" aria-hidden data-fade>
             <div className="glass-panel glass-panel--strong w-full max-w-[420px] rounded-[30px] p-5">
               <div className="flex items-center justify-between text-sm text-[rgba(240,243,255,0.7)]">
                 <span>Realtime overlay</span>
@@ -296,7 +293,7 @@ export default function LandingPage() {
         </section>
 
         <section className="flex flex-col gap-8 mb-8 scroll-mt-28" id="features">
-          <div className="rounded-3xl glass-panel glass-panel--strong opacity-0 translate-y-7 transition-all duration-700 ease-out p-6 lg:p-8 text-center lg:text-left" data-fade>
+          <div className="rounded-3xl glass-panel glass-panel--strong opacity-0 translate-y-7 p-6 lg:p-8 text-center lg:text-left" data-fade>
             <p className="text-xs tracking-[0.4em] uppercase text-[rgba(240,243,255,0.65)] m-0">Precision overlays</p>
             <h2 className="text-[clamp(1.8rem,3vw,2.6rem)] my-2 m-0">Layers that explain the network at a glance.</h2>
             <p className="m-0 text-[rgba(240,243,255,0.75)] max-w-[560px] mx-auto lg:mx-0">
@@ -327,7 +324,7 @@ export default function LandingPage() {
 
         <section className="grid gap-6 lg:grid-cols-2 scroll-mt-28" id="pipeline">
           <div
-            className="glass-panel glass-panel--strong rounded-[1.8rem] p-6 lg:p-8 opacity-0 translate-y-7 transition-all duration-700 ease-out flex flex-col h-full"
+            className="glass-panel glass-panel--strong rounded-[1.8rem] p-6 lg:p-8 opacity-0 translate-y-7 flex flex-col h-full"
             data-fade
             style={{ transitionDelay: '60ms' }}
           >
@@ -360,7 +357,7 @@ export default function LandingPage() {
             {pipeline.map((step, index) => (
               <div
                 key={step.title}
-                className="glass-panel flex gap-4 p-4.5 px-5 rounded-2xl opacity-0 translate-y-7 transition-all duration-700 ease-out"
+                className="glass-panel flex gap-4 p-4.5 px-5 rounded-2xl opacity-0 translate-y-7"
                 data-fade
                 style={{ transitionDelay: `${index * 80}ms` }}
               >
@@ -374,7 +371,7 @@ export default function LandingPage() {
           </div>
         </section>
 
-        <section className="glass-panel glass-panel--strong mt-4 p-[clamp(1.5rem,3vw,2.5rem)] rounded-3xl flex flex-wrap justify-between gap-5 items-center opacity-0 translate-y-7 transition-all duration-700 ease-out scroll-mt-28" id="contact" data-fade>
+        <section className="glass-panel glass-panel--strong mt-4 p-[clamp(1.5rem,3vw,2.5rem)] rounded-3xl flex flex-wrap justify-between gap-5 items-center opacity-0 translate-y-7 scroll-mt-28" id="contact" data-fade>
           <div>
             <p className="text-xs tracking-[0.4em] uppercase text-[rgba(240,243,255,0.65)] m-0">Deploy AcciNet</p>
             <h3 className="m-0 my-2">Bring safer routing to your network.</h3>
@@ -387,13 +384,13 @@ export default function LandingPage() {
           </div>
         </section>
 
-      <section className="glass-panel glass-panel--strong rounded-3xl p-6 pb-12 text-center text-[rgba(240,243,255,0.75)] opacity-0 translate-y-7 transition-all duration-700 ease-out flex flex-col items-center gap-6 scroll-mt-28" id="references" data-fade>
+      <section className="glass-panel glass-panel--strong rounded-3xl p-6 pb-12 text-center text-[rgba(240,243,255,0.75)] opacity-0 translate-y-7 flex flex-col items-center gap-6 scroll-mt-28" id="references" data-fade>
         <p className="max-w-[800px]">Built with TXDot data, Open Street Map data, PostGIS, MapLibre, Google Maps, and MapTiler.</p>
         <div className="flex flex-wrap justify-center gap-3 " role="list">
           {badges.map((badge, index) => (
             <div
               key={badge}
-              className="glass-chip opacity-0 translate-y-7 transition-all duration-700 ease-out"
+              className="glass-chip opacity-0 translate-y-7"
               role="listitem"
               data-fade
               style={{ transitionDelay: `${150 + index * 40}ms` }}
