@@ -23,7 +23,7 @@ load_dotenv()
 app = FastAPI()
 gmaps = googlemaps.Client(key=os.getenv("GOOGLE_MAPS_API_KEY"))
 
-usingRedis = True
+usingRedis = False
 if(usingRedis):
     redis_client = redis.from_url("redis://localhost:6379",decode_responses=True)
 else:
