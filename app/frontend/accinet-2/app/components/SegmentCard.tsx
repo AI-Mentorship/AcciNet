@@ -145,3 +145,5 @@ export default function SegmentCard({ name, klass, oneway, mid, isInter }: Props
 
 
 
+
+

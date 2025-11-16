@@ -158,7 +158,9 @@ export default function RoutePopup({ condition, position, onClose }: RoutePopupP
                 <div className="flex justify-between">
                   <span className="text-zinc-400">Temperature:</span>
                   <span className="text-zinc-200">
-                    {weather.temperature ? `${((weather.temperature * 9/5) + 32).toFixed(1)}°F` : 'N/A'}
+                    {weather.temperature !== null && weather.temperature !== undefined 
+                      ? `${weather.temperature.toFixed(1)}°F` 
+                      : 'N/A'}
                   </span>
                 </div>
               )}

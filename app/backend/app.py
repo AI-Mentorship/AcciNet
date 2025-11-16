@@ -824,19 +824,24 @@ async def fetch_nearest_roads_for_coords(coords: List[Tuple[float, float]], sear
                 first_coord = coord_list[0]
                 uncached_coords.append((first_coord[0], first_coord[1], first_coord[2], grid_key))
         
-        # Fetch uncached coordinates in parallel using asyncio
+        # Fetch uncached coordinates in parallel using asyncio with concurrency limit
         if uncached_coords:
             print(f"Cache miss for {len(uncached_coords)} grid cells, querying database in parallel...")
             
             engine = get_db_engine()
-            # Run all queries in parallel using separate connections from the pool
+            # Limit concurrent database connections to avoid exhausting the pool
+            # Use semaphore to limit to 8 concurrent connections (leaving room for other operations)
+            semaphore = asyncio.Semaphore(8)
+            
+            # Run queries in parallel using separate connections from the pool
             # Since database is read-only, parallel queries are safe
             # Use connect() instead of begin() for read-only queries (no transaction overhead)
             async def fetch_with_connection(coord_idx, lat, lon, grid_key):
-                async with engine.connect() as conn:
-                    # Read-only query, no transaction needed
-                    result = await _fetch_nearest_road_query(lat, lon, search_radius_km, conn)
-                    return result
+                async with semaphore:  # Limit concurrent connections
+                    async with engine.connect() as conn:
+                        # Read-only query, no transaction needed
+                        result = await _fetch_nearest_road_query(lat, lon, search_radius_km, conn)
+                        return result
             
             # Create tasks for parallel execution
             tasks = [
