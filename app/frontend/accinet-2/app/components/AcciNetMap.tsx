@@ -19,6 +19,8 @@ import HeatmapRiskLayer from './HeatMapRiskLayer';
 import HereTrafficLayer from './HereTrafficLayer';
 import TomTomTrafficLayer from './TomTomTrafficLayer';
 import TomTomTrafficLegend from './TomTomTrafficLegend';
+import RouteSelector from './RouteSelector';
+import RoutePopup from './RoutePopup';
 
 type RouteItem = {
   coords: [number, number][];
@@ -26,6 +28,14 @@ type RouteItem = {
   durationSec: number;
   distanceMeters: number;
   avgRisk: number;
+  conditions?: Array<{
+    lat: number;
+    lon: number;
+    weathercode?: number;
+    temperature?: number;
+    road_type?: string;
+    road_name?: string;
+  }>;
 };
 
 type RouteTheme = 'safe' | 'moderate' | 'risky';
@@ -56,6 +66,13 @@ const AcciNetMap: React.FC = () => {
   const [cityGlowRadius, setCityGlowRadius] = useState(90);
   const [viewMode, setViewMode] = useState<'historical' | 'predictive'>('predictive');
   const [selectType, setSelectType] = useState<'segment' | 'points'>('segment');
+  
+  // Route selection and popup state
+  const [selectedRouteIds, setSelectedRouteIds] = useState<Set<string>>(new Set());
+  const [routePopup, setRoutePopup] = useState<{
+    condition: any;
+    position: { x: number; y: number };
+  } | null>(null);
 
   const applyMapStyling = useCallback((map: maplibregl.Map) => {
     const style = map.getStyle();
@@ -195,6 +212,8 @@ const AcciNetMap: React.FC = () => {
   }, [applyMapStyling]);
 
   const onRoutes = useCallback((incoming: GoogleRoute[]) => {
+    console.log(`[AcciNetMap] Received ${incoming.length} route(s) from Google Maps API`);
+    
     if (!incoming.length) {
       setRoutes([]);
       setSafestIdx(-1);
@@ -203,19 +222,44 @@ const AcciNetMap: React.FC = () => {
       return;
     }
 
-    const items = incoming.map((route) => {
+    const items = incoming.map((route, idx) => {
       const coords = normalizeCoords(route.coords);
-      const probs = simulateProbs(coords);
+      
+      // Use backend values if available, otherwise generate simulated probs
+      // Backend provides one value per coordinate, we need to map to segments
+      let probs: number[];
+      if (route.values && route.values.length > 0) {
+        // Backend provides values for each coordinate
+        // Convert to segment-based probs for gradient visualization
+        const segments = Math.max(10, Math.round(coords.length / 50));
+        probs = Array.from({ length: segments }, (_, i) => {
+          const coordIdx = Math.floor((i / segments) * route.values!.length);
+          return route.values![Math.min(coordIdx, route.values!.length - 1)] || 0.5;
+        });
+      } else {
+        // Fallback to simulated probs if backend didn't provide values
+        probs = simulateProbs(coords);
+      }
+      
       const avgRisk = probs.length ? probs.reduce((acc, value) => acc + value, 0) / probs.length : 0.5;
       const distanceMeters = route.distanceMeters || estimateDistanceMeters(coords);
+      
+      console.log(`[AcciNetMap] Processing route ${idx + 1}: ${coords.length} coords, ${distanceMeters.toFixed(0)}m, ${(route.durationSec / 60).toFixed(1)}min, avgRisk=${avgRisk.toFixed(3)}`);
+      
       return {
         coords,
         probs,
         durationSec: route.durationSec,
         distanceMeters,
         avgRisk,
+        conditions: route.conditions, // Store condition data from backend
       } satisfies RouteItem;
     });
+    
+    console.log(`[AcciNetMap] Processed ${items.length} real route(s)`);
+
+    // Sort routes by risk (lowest first)
+    items.sort((a, b) => a.avgRisk - b.avgRisk);
 
     const safest = indexOfMin(items.map((r) => r.avgRisk));
     const fastest = indexOfMin(items.map((r) => r.durationSec));
@@ -225,6 +269,10 @@ const AcciNetMap: React.FC = () => {
     setSafestIdx(safest);
     setFastestIdx(fastest);
     setFuelIdx(fuelSaver);
+
+    // Select all routes by default
+    const allRouteIds = new Set(items.map((_, idx) => `route-${idx}`));
+    setSelectedRouteIds(allRouteIds);
 
     const map = mapRef.current;
     if (!map) return;
@@ -242,22 +290,111 @@ const AcciNetMap: React.FC = () => {
     setSafestIdx(-1);
     setFastestIdx(-1);
     setFuelIdx(-1);
+    setSelectedRouteIds(new Set());
+    setRoutePopup(null);
   }, []);
 
   const gradientRoutes = useMemo(() => {
     if (!mapLoaded || !mapRef.current || !routes.length) return [];
-    return routes.map((route, idx) => {
-      let theme: RouteTheme = 'risky';
-      if (idx === safestIdx) theme = 'safe';
-      else if (idx === fastestIdx) theme = 'moderate';
-      return {
-        id: `route-${idx}`,
-        coords: route.coords,
-        probs: route.probs,
-        theme,
-      };
+    return routes
+      .map((route, idx) => {
+        let theme: RouteTheme = 'risky';
+        if (idx === safestIdx) theme = 'safe';
+        else if (idx === fastestIdx) theme = 'moderate';
+        return {
+          id: `route-${idx}`,
+          coords: route.coords,
+          probs: route.probs,
+          theme,
+          conditions: route.conditions,
+        };
+      })
+      .filter((route) => selectedRouteIds.has(route.id));
+  }, [fastestIdx, mapLoaded, routes, safestIdx, selectedRouteIds]);
+
+  const routeInfos = useMemo(() => {
+    return routes.map((route, idx) => ({
+      id: `route-${idx}`,
+      name: `Route ${idx + 1}`,
+      avgRisk: route.avgRisk,
+      durationSec: route.durationSec,
+      distanceMeters: route.distanceMeters,
+    }));
+  }, [routes]);
+
+  const handleRouteToggle = useCallback((routeId: string) => {
+    setSelectedRouteIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(routeId)) {
+        next.delete(routeId);
+      } else {
+        next.add(routeId);
+      }
+      return next;
     });
-  }, [fastestIdx, mapLoaded, routes, safestIdx]);
+  }, []);
+
+  const handleSelectAll = useCallback(() => {
+    setSelectedRouteIds(new Set(routes.map((_, idx) => `route-${idx}`)));
+  }, [routes]);
+
+  const handleDeselectAll = useCallback(() => {
+    setSelectedRouteIds(new Set());
+  }, []);
+
+  const handleRouteClick = useCallback((e: maplibregl.MapLayerMouseEvent, routeId: string) => {
+    const routeIdx = parseInt(routeId.replace('route-', ''));
+    const route = routes[routeIdx];
+    if (!route || !route.conditions || route.conditions.length === 0) return;
+
+    // Find nearest condition point to clicked location
+    const clickedLng = e.lngLat.lng;
+    const clickedLat = e.lngLat.lat;
+    
+    let nearestCondition = route.conditions[0];
+    let minDistance = Infinity;
+
+    for (const condition of route.conditions) {
+      const distance = Math.sqrt(
+        Math.pow(condition.lon - clickedLng, 2) + Math.pow(condition.lat - clickedLat, 2)
+      );
+      if (distance < minDistance) {
+        minDistance = distance;
+        nearestCondition = condition;
+      }
+    }
+
+    // Convert condition to RoutePopup format
+    const popupCondition = {
+      lat: nearestCondition.lat,
+      lon: nearestCondition.lon,
+      weather: {
+        current_weather: {
+          temperature: nearestCondition.temperature,
+          weathercode: nearestCondition.weathercode,
+        },
+      },
+      road: {
+        surface: 'asphalt', // Default, could be enhanced
+        road_type: nearestCondition.road_type || 'unknown',
+        condition: nearestCondition.road_type && ['track', 'path', 'footway', 'cycleway'].includes(nearestCondition.road_type) ? 'poor' : 'good',
+        name: nearestCondition.road_name || 'Unknown Road',
+      },
+    };
+
+    // Get click position in screen coordinates
+    // e.point is already in screen coordinates relative to the map container
+    const container = mapRef.current!.getContainer();
+    const rect = container.getBoundingClientRect();
+    
+    setRoutePopup({
+      condition: popupCondition,
+      position: { 
+        x: e.point.x + rect.left, 
+        y: e.point.y + rect.top 
+      },
+    });
+  }, [routes]);
 
   return (
     <div
@@ -292,7 +429,29 @@ const AcciNetMap: React.FC = () => {
           )}
 
           {gradientRoutes.length > 0 && (
-            <MultiRouteGradientLayer map={mapRef.current} routes={gradientRoutes} />
+            <MultiRouteGradientLayer 
+              map={mapRef.current} 
+              routes={gradientRoutes}
+              onRouteClick={handleRouteClick}
+            />
+          )}
+
+          {routes.length > 0 && (
+            <RouteSelector
+              routes={routeInfos}
+              selectedRouteIds={selectedRouteIds}
+              onRouteToggle={handleRouteToggle}
+              onSelectAll={handleSelectAll}
+              onDeselectAll={handleDeselectAll}
+            />
+          )}
+
+          {routePopup && (
+            <RoutePopup
+              condition={routePopup.condition}
+              position={routePopup.position}
+              onClose={() => setRoutePopup(null)}
+            />
           )}
 
           <ConfigBox onOpenSidebar={() => setSidebarOpen(true)} />

@@ -9,14 +9,16 @@ type RouteData = {
   coords: [number, number][];
   probs: number[];
   theme?: 'safe' | 'moderate' | 'risky';
+  conditions?: Array<any>;
 };
 
 type Props = {
   map: maplibregl.Map;
   routes: RouteData[];
+  onRouteClick?: (e: maplibregl.MapLayerMouseEvent, routeId: string) => void;
 };
 
-export default function MultiRouteGradientLayer({ map, routes }: Props) {
+export default function MultiRouteGradientLayer({ map, routes, onRouteClick }: Props) {
   const bestRouteId = useMemo(() => {
     if (!routes.length) return null;
 
@@ -38,6 +40,7 @@ export default function MultiRouteGradientLayer({ map, routes }: Props) {
           idBase={r.id}
           highlight={r.id === bestRouteId}
           theme={r.theme}
+          onClick={onRouteClick ? (e) => onRouteClick(e, r.id) : undefined}
         />
       ))}
     </>

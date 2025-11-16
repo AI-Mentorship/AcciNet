@@ -11,6 +11,7 @@ type Props = {
   idBase?: string;
   highlight?: boolean;
   theme?: 'safe' | 'moderate' | 'risky';
+  onClick?: (e: maplibregl.MapLayerMouseEvent) => void;
 };
 
 export default class RouteGradientLayer extends React.Component<Props> {
@@ -110,6 +111,8 @@ export default class RouteGradientLayer extends React.Component<Props> {
           'line-gradient': this.buildGradient(),
         },
       });
+      
+      // Add click handler if provided (will be set up after layer is created)
     } else {
       console.log(`[RouteGradientLayer] Updating gradient layer ${grad}`);
       map.setPaintProperty(grad, 'line-gradient', this.buildGradient());
@@ -120,14 +123,37 @@ export default class RouteGradientLayer extends React.Component<Props> {
     map.moveLayer(grad);
   };
 
+  private setupClickHandler = () => {
+    const { map, onClick } = this.props;
+    const { grad } = this.ids;
+    if (!onClick || !map.getLayer(grad)) return;
+    
+    // Remove existing handler if any
+    map.off('click', grad, onClick);
+    // Add click handler
+    map.on('click', grad, onClick);
+    
+    // Add cursor pointer on hover
+    map.on('mouseenter', grad, () => {
+      map.getCanvas().style.cursor = 'pointer';
+    });
+    map.on('mouseleave', grad, () => {
+      map.getCanvas().style.cursor = '';
+    });
+  };
+
   componentDidMount() {
     const { map } = this.props;
-    const boot = () => this.ensure();
+    const boot = () => {
+      this.ensure();
+      this.setupClickHandler();
+    };
     map.isStyleLoaded() ? boot() : map.once('load', boot);
 
     this.onStyleData = () => {
       if (!this.props.map.getSource(this.ids.src)) {
         this.ensure();
+        this.setupClickHandler();
       } else {
         if (this.props.map.getLayer(this.ids.halo))
           this.props.map.moveLayer(this.ids.halo);
@@ -144,16 +170,33 @@ export default class RouteGradientLayer extends React.Component<Props> {
     const probsChanged =
       prev.probs.length !== this.props.probs.length ||
       prev.probs.some((v, i) => v !== this.props.probs[i]);
+    const onClickChanged = prev.onClick !== this.props.onClick;
+    
     if (prevKey !== nextKey || probsChanged || prev.theme !== this.props.theme) {
       this.ensure();
+    }
+    
+    // Update click handler if it changed
+    if (onClickChanged) {
+      this.setupClickHandler();
     }
   }
 
   componentWillUnmount() {
-    const { map } = this.props;
+    const { map, onClick } = this.props;
     map.off('styledata', this.onStyleData);
     const { grad, halo, src } = this.ids;
-    if (map.getLayer(grad)) map.removeLayer(grad);
+    
+    // Remove click and hover handlers
+    if (map.getLayer(grad)) {
+      if (onClick) {
+        map.off('click', grad, onClick);
+      }
+      map.off('mouseenter', grad);
+      map.off('mouseleave', grad);
+      map.removeLayer(grad);
+    }
+    
     if (map.getLayer(halo)) map.removeLayer(halo);
     if (map.getSource(src)) map.removeSource(src);
   }

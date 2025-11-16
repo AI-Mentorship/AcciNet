@@ -35,7 +35,6 @@ export default function WeatherBox({ map, googleKey }: Props) {
   const [open, setOpen] = useState(false);
   const [status, setStatus] = useState<'idle' | 'loading' | 'error'>('idle');
   const [error, setError] = useState<string | null>(null);
-  const [center, setCenter] = useState(() => map.getCenter());
 
   const portalNode = useMemo(() => {
     const div = document.createElement('div');
@@ -51,23 +50,20 @@ export default function WeatherBox({ map, googleKey }: Props) {
     };
   }, [map, portalNode]);
 
+  // Removed automatic weather fetching on map move
+  // Weather is now only fetched for routes (handled by backend in route conditions)
+  // Users can still manually select weather presets if needed
   useEffect(() => {
-    const onMoveEnd = () => setCenter(map.getCenter());
-    map.on('moveend', onMoveEnd);
-    return () => {
-      map.off('moveend', onMoveEnd);
-    };
-  }, [map]);
-
-  useEffect(() => {
+    // Only fetch weather once on mount if auto is enabled, not on every map move
     if (!auto) return;
     let alive = true;
     let t = window.setTimeout(async () => {
+      const currentCenter = map.getCenter();
       setStatus('loading');
       setError(null);
       const ac = new AbortController();
       try {
-        const preset = await autoInferWeather(center.lat, center.lng, googleKey, ac.signal);
+        const preset = await autoInferWeather(currentCenter.lat, currentCenter.lng, googleKey, ac.signal);
         if (alive) {
           setState((s) => ({ ...s, selection: preset }));
           setStatus('idle');
@@ -83,7 +79,9 @@ export default function WeatherBox({ map, googleKey }: Props) {
       clearTimeout(t);
       alive = false;
     };
-  }, [auto, center.lat, center.lng, googleKey]);
+    // Only run once on mount, not on every map move
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [auto, googleKey]);
 
   useEffect(() => {
     try {

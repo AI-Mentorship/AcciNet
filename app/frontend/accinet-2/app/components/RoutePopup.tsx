@@ -5,7 +5,13 @@ import { useEffect, useRef } from 'react';
 interface RouteCondition {
   lat: number;
   lon: number;
-  weather: {
+  // New simplified format
+  weathercode?: number;
+  temperature?: number;
+  road_type?: string;
+  road_name?: string;
+  // Legacy format (for backward compatibility)
+  weather?: {
     current_weather?: {
       temperature?: number;
       weathercode?: number;
@@ -13,7 +19,7 @@ interface RouteCondition {
     };
     error?: string;
   };
-  road: {
+  road?: {
     surface: string;
     road_type: string;
     condition: string;
@@ -45,8 +51,17 @@ export default function RoutePopup({ condition, position, onClose }: RoutePopupP
 
   if (!condition || !position) return null;
 
-  const weather = condition.weather.current_weather;
-  const road = condition.road;
+  // Handle both new format (direct properties) and legacy format (nested objects)
+  const weather = condition.weather?.current_weather || {
+    temperature: condition.temperature,
+    weathercode: condition.weathercode,
+  };
+  const road = condition.road || {
+    surface: 'asphalt',
+    road_type: condition.road_type || 'unknown',
+    condition: condition.road_type && ['track', 'path', 'footway', 'cycleway'].includes(condition.road_type) ? 'poor' : 'good',
+    name: condition.road_name || 'Unknown Road',
+  };
 
   // Get weather description from WMO code
   const getWeatherDescription = (code?: number): string => {
@@ -137,16 +152,24 @@ export default function RoutePopup({ condition, position, onClose }: RoutePopupP
 
         <div className="border-t border-zinc-700 pt-3">
           <h3 className="text-lg font-semibold text-zinc-100 mb-2">Weather</h3>
-          {weather && !condition.weather.error ? (
+          {weather && !condition.weather?.error ? (
             <div className="space-y-1 text-sm">
-              <div className="flex justify-between">
-                <span className="text-zinc-400">Temperature:</span>
-                <span className="text-zinc-200">{weather.temperature?.toFixed(1)}°F</span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-zinc-400">Conditions:</span>
-                <span className="text-zinc-200">{getWeatherDescription(weather.weathercode)}</span>
-              </div>
+              {weather.temperature !== undefined && (
+                <div className="flex justify-between">
+                  <span className="text-zinc-400">Temperature:</span>
+                  <span className="text-zinc-200">
+                    {weather.temperature !== null && weather.temperature !== undefined 
+                      ? `${weather.temperature.toFixed(1)}°F` 
+                      : 'N/A'}
+                  </span>
+                </div>
+              )}
+              {weather.weathercode !== undefined && (
+                <div className="flex justify-between">
+                  <span className="text-zinc-400">Conditions:</span>
+                  <span className="text-zinc-200">{getWeatherDescription(weather.weathercode)}</span>
+                </div>
+              )}
               {weather.windspeed !== undefined && (
                 <div className="flex justify-between">
                   <span className="text-zinc-400">Wind Speed:</span>
@@ -156,7 +179,7 @@ export default function RoutePopup({ condition, position, onClose }: RoutePopupP
             </div>
           ) : (
             <div className="text-sm text-zinc-400">
-              {condition.weather.error || 'Weather data unavailable'}
+              {condition.weather?.error || 'Weather data unavailable'}
             </div>
           )}
         </div>
