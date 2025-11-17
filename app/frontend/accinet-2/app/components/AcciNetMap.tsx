@@ -410,7 +410,7 @@ const AcciNetMap: React.FC = () => {
         <>
           <RouteBox
             map={mapRef.current}
-            googleKey={GOOGLE_API_KEY}
+            googleKey={GOOGLE_API_KEY ?? ''}
             maptilerKey={MAPTILER_KEY}
             onRoutes={onRoutes}
             onResetRoutes={resetRoutes}
@@ -480,7 +480,7 @@ const AcciNetMap: React.FC = () => {
           {showTraffic && (
             <HereTrafficLayer
               map={mapRef.current}
-              apiKey={HERE_API_KEY}
+              apiKey={HERE_API_KEY ?? ''}
               lat={mapCenter.lat}
               lon={mapCenter.lng}
               radius={Math.max(3000, 5000 / Math.max(1, mapZoom))}

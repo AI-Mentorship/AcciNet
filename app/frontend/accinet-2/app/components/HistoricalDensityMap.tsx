@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import Draggable from 'react-draggable';
 import maplibregl from 'maplibre-gl';
 import 'maplibre-gl/dist/maplibre-gl.css';
 
@@ -21,6 +22,9 @@ const HistoricalDensityMap: React.FC = () => {
   const containerRef = useRef<HTMLDivElement | null>(null);
   const mapRef = useRef<maplibregl.Map | null>(null);
   const mapStyledRef = useRef(false);
+  const timeSeriesDrag = useRef(null);
+  const controlPanelDrag = useRef(null);
+  const legendDrag = useRef(null);
 
   const [mapLoaded, setMapLoaded] = useState(false);
   const [data, setData] = useState<HistoricalCellRecord[]>([]);
@@ -292,115 +296,126 @@ const HistoricalDensityMap: React.FC = () => {
       {/* Time Series Selector */}
       {mapLoaded && availableYears.length > 0 && selectedRange && (
         <div className="fixed top-4 left-1/2 -translate-x-1/2 z-[2147483647] pointer-events-none">
-          <TimeSeriesSelector
-            years={availableYears}
-            range={selectedRange}
-            onRangeChange={handleRangeChange}
-            className="pointer-events-auto"
-          />
+          <Draggable handle=".drag-handle" nodeRef={timeSeriesDrag}>
+            <div className="drag-handle w-full cursor-grab" ref={timeSeriesDrag}>
+              <TimeSeriesSelector
+                years={availableYears}
+                range={selectedRange}
+                onRangeChange={handleRangeChange}
+                className="pointer-events-auto"
+              />
+            </div>
+          </Draggable>
         </div>
       )}
 
       {/* Controls Panel */}
       {mapLoaded && (
         <div className="fixed bottom-4 right-4 z-[2147483647] pointer-events-none">
-          <div className="glass-panel glass-panel--strong rounded-2xl p-4 pointer-events-auto w-[280px]">
-            <h3 className="text-sm font-semibold text-white mb-3 m-0">Heatmap Controls</h3>
-            
-            <div className="space-y-4">
-              <div>
-                <div className="flex justify-between items-center mb-2">
-                  <label className="text-xs text-gray-300">Radius</label>
-                  <span className="text-xs text-gray-400">{heatmapRadius}px</span>
-                </div>
-                <input
-                  type="range"
-                  min={20}
-                  max={100}
-                  step={5}
-                  value={heatmapRadius}
-                  onChange={(e) => handleRadiusChange(Number(e.target.value))}
-                  className="w-full"
-                />
-              </div>
+          <Draggable handle=".drag-handle" nodeRef={controlPanelDrag}>
+            <div className='drag-handle w-full cursor-grab' ref={controlPanelDrag}>
+              <div className="glass-panel glass-panel--strong rounded-2xl p-4 pointer-events-auto w-[280px]">
+                <h3 className="text-sm font-semibold text-white mb-3 m-0">Heatmap Controls</h3>
+                  <div className="space-y-4">
+                    <div>
+                      <div className="flex justify-between items-center mb-2">
+                        <label className="text-xs text-gray-300">Radius</label>
+                        <span className="text-xs text-gray-400">{heatmapRadius}px</span>
+                      </div>
+                      <input
+                        type="range"
+                        min={20}
+                        max={100}
+                        step={5}
+                        value={heatmapRadius}
+                        onChange={(e) => handleRadiusChange(Number(e.target.value))}
+                        className="w-full"
+                      />
+                    </div>
 
-              <div>
-                <div className="flex justify-between items-center mb-2">
-                  <label className="text-xs text-gray-300">Opacity</label>
-                  <span className="text-xs text-gray-400">{Math.round(heatmapOpacity * 100)}%</span>
-                </div>
-                <input
-                  type="range"
-                  min={0.1}
-                  max={1}
-                  step={0.05}
-                  value={heatmapOpacity}
-                  onChange={(e) => handleOpacityChange(Number(e.target.value))}
-                  className="w-full"
-                />
+                    <div>
+                      <div className="flex justify-between items-center mb-2">
+                        <label className="text-xs text-gray-300">Opacity</label>
+                        <span className="text-xs text-gray-400">{Math.round(heatmapOpacity * 100)}%</span>
+                      </div>
+                      <input
+                        type="range"
+                        min={0.1}
+                        max={1}
+                        step={0.05}
+                        value={heatmapOpacity}
+                        onChange={(e) => handleOpacityChange(Number(e.target.value))}
+                        className="w-full"
+                      />
+                    </div>
+                  </div>
+
+                  {filteredData.length > 0 && selectedRange && densityStats && (
+                    <div className="mt-4 pt-4 border-t border-white/8">
+                      <div className="text-xs text-gray-400">
+                        <div>
+                          Showing{' '}
+                          <strong className="text-white">{filteredData.length.toLocaleString()}</strong> cells for{' '}
+                          <span className="text-white">
+                            {selectedRange.start} – {selectedRange.end}
+                          </span>
+                        </div>
+                        <div className="mt-1">
+                          Density range:{' '}
+                          <strong className="text-white">
+                            {densityStats.min.toFixed(2)} – {densityStats.max.toFixed(2)}
+                          </strong>
+                        </div>
+                      </div>
+                    </div>
+                  )}
               </div>
             </div>
-
-            {filteredData.length > 0 && selectedRange && densityStats && (
-              <div className="mt-4 pt-4 border-t border-white/8">
-                <div className="text-xs text-gray-400">
-                  <div>
-                    Showing{' '}
-                    <strong className="text-white">{filteredData.length.toLocaleString()}</strong> cells for{' '}
-                    <span className="text-white">
-                      {selectedRange.start} – {selectedRange.end}
-                    </span>
-                  </div>
-                  <div className="mt-1">
-                    Density range:{' '}
-                    <strong className="text-white">
-                      {densityStats.min.toFixed(2)} – {densityStats.max.toFixed(2)}
-                    </strong>
-                  </div>
-                </div>
-              </div>
-            )}
-          </div>
+          </Draggable>
         </div>
       )}
 
       {/* Legend */}
       {mapLoaded && (
         <div className="fixed bottom-4 left-4 z-[2147483647] pointer-events-none">
-          <div className="glass-panel glass-panel--strong rounded-2xl p-4 pointer-events-auto w-[240px]">
-            <h3 className="text-sm font-semibold text-white mb-3 m-0">Crash Density</h3>
-            
-            <div className="space-y-2">
-              <div className="flex items-center gap-2">
-                <div className="w-4 h-4 rounded" style={{ backgroundColor: '#0ea5e9' }} />
-                <span className="text-xs text-gray-300">Minimal</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <div className="w-4 h-4 rounded" style={{ backgroundColor: '#22d3ee' }} />
-                <span className="text-xs text-gray-300">Very Low</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <div className="w-4 h-4 rounded" style={{ backgroundColor: '#60a5fa' }} />
-                <span className="text-xs text-gray-300">Low</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <div className="w-4 h-4 rounded" style={{ backgroundColor: '#facc15' }} />
-                <span className="text-xs text-gray-300">Moderate</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <div className="w-4 h-4 rounded" style={{ backgroundColor: '#f97316' }} />
-                <span className="text-xs text-gray-300">High</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <div className="w-4 h-4 rounded" style={{ backgroundColor: '#ef4444' }} />
-                <span className="text-xs text-gray-300">Very High</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <div className="w-4 h-4 rounded" style={{ backgroundColor: '#dc2626' }} />
-                <span className="text-xs text-gray-300">Extreme</span>
+          <Draggable handle=".drag-handle" nodeRef={legendDrag}>
+            <div className='drag-handle w-full cursor-grab' ref={legendDrag}>
+              <div className="glass-panel glass-panel--strong rounded-2xl p-4 pointer-events-auto w-[240px]">
+                <h3 className="text-sm font-semibold text-white mb-3 m-0">Crash Density</h3>
+                
+                <div className="space-y-2">
+                  <div className="flex items-center gap-2">
+                    <div className="w-4 h-4 rounded" style={{ backgroundColor: '#0ea5e9' }} />
+                    <span className="text-xs text-gray-300">Minimal</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <div className="w-4 h-4 rounded" style={{ backgroundColor: '#22d3ee' }} />
+                    <span className="text-xs text-gray-300">Very Low</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <div className="w-4 h-4 rounded" style={{ backgroundColor: '#60a5fa' }} />
+                    <span className="text-xs text-gray-300">Low</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <div className="w-4 h-4 rounded" style={{ backgroundColor: '#facc15' }} />
+                    <span className="text-xs text-gray-300">Moderate</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <div className="w-4 h-4 rounded" style={{ backgroundColor: '#f97316' }} />
+                    <span className="text-xs text-gray-300">High</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <div className="w-4 h-4 rounded" style={{ backgroundColor: '#ef4444' }} />
+                    <span className="text-xs text-gray-300">Very High</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <div className="w-4 h-4 rounded" style={{ backgroundColor: '#dc2626' }} />
+                    <span className="text-xs text-gray-300">Extreme</span>
+                  </div>
+                </div>
               </div>
             </div>
-          </div>
+          </Draggable>
         </div>
       )}
 
