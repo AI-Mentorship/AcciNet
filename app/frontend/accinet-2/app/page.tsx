@@ -213,6 +213,9 @@ export default function LandingPage() {
             <a href="https://github.com/AI-Mentorship/AcciNet" target="_blank" rel="noreferrer" className="text-[rgba(240,243,255,0.85)] no-underline text-sm">
               Docs
             </a>
+            <Link className="glass-button inline-flex items-center gap-1.5 py-3 px-5.5 font-semibold no-underline text-sm" href="/login">
+              Sign in
+            </Link>
             <Link className="inline-flex items-center gap-1.5 py-3 px-5.5 rounded-full font-semibold no-underline text-sm border border-transparent transition-all bg-gradient-to-r from-gray-100 to-blue-100 text-[#05060b] shadow-[0_15px_40px_rgba(17,25,40,0.35)] hover:-translate-y-0.5 hover:shadow-[0_18px_50px_rgba(17,25,40,0.45)]" href="/map">
               Launch map
               <ArrowRight size={18} aria-hidden />
