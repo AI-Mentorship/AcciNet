@@ -28,7 +28,8 @@ export default function LoginPage() {
     try {
       const provider = new GoogleAuthProvider();
       await signInWithPopup(auth, provider);
-      router.push('/map');
+      // Redirect to landing page instead of map
+      router.push('/');
     } catch (err: any) {
       setError(err.message || 'An error occurred. Please try again.');
       setLoading(false);

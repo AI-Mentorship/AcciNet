@@ -2,7 +2,11 @@
 
 import { useEffect } from 'react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import type { LucideIcon } from 'lucide-react';
+import { signOut } from 'firebase/auth';
+import { useAuth } from './lib/auth-context';
+import { auth } from './lib/firebase';
 import {
   Activity,
   ArrowRight,
@@ -108,6 +112,17 @@ const handleSmoothScroll = (e: React.MouseEvent<HTMLAnchorElement>) => {
 
 export default function LandingPage() {
   const year = new Date().getFullYear();
+  const { user } = useAuth();
+  const router = useRouter();
+
+  const handleSignOut = async () => {
+    try {
+      await signOut(auth);
+      router.push('/');
+    } catch (error) {
+      console.error('Error signing out:', error);
+    }
+  };
 
   useEffect(() => {
     let observer: IntersectionObserver | null = null;
@@ -184,45 +199,54 @@ export default function LandingPage() {
       <div className="absolute -bottom-50 -right-25 w-[420px] h-[420px] blur-[140px] opacity-35 z-0 bg-purple-500 pointer-events-none" aria-hidden />
 
       <header className="fixed top-4 left-0 right-0 z-50">
-        <div className="flex items-center justify-between gap-6 py-3.5 px-6 rounded-full bg-[rgba(12,18,32,0.92)] border border-cyan-400/50 backdrop-blur-2xl shadow-[0_0_20px_rgba(6,182,212,1)] max-w-[1100px] mx-auto">
-          <div className="flex items-center gap-3">
+        <div className="flex items-center justify-between gap-4 py-2.5 px-4 rounded-full bg-[rgba(12,18,32,0.92)] border border-cyan-400/50 backdrop-blur-2xl shadow-[0_0_20px_rgba(6,182,212,1)] max-w-[1100px] mx-auto">
+          <div className="flex items-center gap-2">
             <img 
               src="/AcciNet_Logo.svg" 
               alt="AcciNet Logo" 
               className="object-contain"
               style={{ 
-                width: '54px', 
-                height: '48px',
-                transform: 'scale(1.8)',
+                width: '40px', 
+                height: '36px',
+                transform: 'scale(1.5)',
                 transformOrigin: 'center'
               }}
             />
             <div>
-              <p className="m-0 font-semibold">AcciNet</p>
-              <span className="block text-xs text-[rgba(240,243,255,0.65)]">Crash network intelligence</span>
+              <p className="m-0 font-semibold text-sm">AcciNet</p>
+              <span className="block text-[0.65rem] text-[rgba(240,243,255,0.65)]">Crash network intelligence</span>
             </div>
           </div>
-          <nav className="flex items-center gap-5 text-sm text-[rgba(240,243,255,0.75)]" aria-label="Primary">
-            <a href="#platform" onClick={handleSmoothScroll} className="text-inherit no-underline transition-colors hover:text-white">Platform</a>
-            <a href="#features" onClick={handleSmoothScroll} className="text-inherit no-underline transition-colors hover:text-white">Layers</a>
-            <a href="#pipeline" onClick={handleSmoothScroll} className="text-inherit no-underline transition-colors hover:text-white">Pipeline</a>
-            <a href="#contact" onClick={handleSmoothScroll} className="text-inherit no-underline transition-colors hover:text-white">Contact</a>
-            <a href="#references" onClick={handleSmoothScroll} className="text-inherit no-underline transition-colors hover:text-white">References</a>
-          </nav>
-          <div className="flex items-center gap-3">
-            <a href="https://github.com/AI-Mentorship/AcciNet" target="_blank" rel="noreferrer" className="text-[rgba(240,243,255,0.85)] no-underline text-sm">
+          <nav className="flex items-center gap-3 text-xs text-[rgba(240,243,255,0.75)]" aria-label="Primary">
+            <a href="#platform" onClick={handleSmoothScroll} className="text-inherit no-underline transition-colors hover:text-white whitespace-nowrap">Platform</a>
+            <a href="#features" onClick={handleSmoothScroll} className="text-inherit no-underline transition-colors hover:text-white whitespace-nowrap">Layers</a>
+            <a href="#pipeline" onClick={handleSmoothScroll} className="text-inherit no-underline transition-colors hover:text-white whitespace-nowrap">Pipeline</a>
+            <a href="#contact" onClick={handleSmoothScroll} className="text-inherit no-underline transition-colors hover:text-white whitespace-nowrap">Contact</a>
+            <a href="#references" onClick={handleSmoothScroll} className="text-inherit no-underline transition-colors hover:text-white whitespace-nowrap">References</a>
+            <a href="https://github.com/AI-Mentorship/AcciNet" target="_blank" rel="noreferrer" className="text-[rgba(240,243,255,0.85)] no-underline transition-colors hover:text-white whitespace-nowrap">
               Docs
             </a>
-            <Link className="glass-button inline-flex items-center gap-1.5 py-3 px-5.5 font-semibold no-underline text-sm" href="/login">
-              Sign in
-            </Link>
-            <Link className="inline-flex items-center gap-1.5 py-3 px-5.5 rounded-full font-semibold no-underline text-sm border border-transparent transition-all bg-gradient-to-r from-gray-100 to-blue-100 text-[#05060b] shadow-[0_15px_40px_rgba(17,25,40,0.35)] hover:-translate-y-0.5 hover:shadow-[0_18px_50px_rgba(17,25,40,0.45)]" href="/map">
+          </nav>
+          <div className="flex items-center gap-2">
+            {user ? (
+              <button
+                onClick={handleSignOut}
+                className="inline-flex items-center gap-1 py-2 px-3.5 font-semibold text-xs cursor-pointer rounded-full border border-red-400/50 bg-red-500/10 text-red-200 hover:bg-red-500/20 hover:border-red-400/70 transition-all backdrop-blur-18px whitespace-nowrap"
+              >
+                Sign out
+              </button>
+            ) : (
+              <Link className="glass-button inline-flex items-center gap-1 py-2 px-3.5 font-semibold no-underline text-xs whitespace-nowrap" href="/login">
+                Sign in
+              </Link>
+            )}
+            <Link className="inline-flex items-center gap-1 py-2 px-3.5 rounded-full font-semibold no-underline text-xs border border-transparent transition-all bg-gradient-to-r from-gray-100 to-blue-100 text-[#05060b] shadow-[0_15px_40px_rgba(17,25,40,0.35)] hover:-translate-y-0.5 hover:shadow-[0_18px_50px_rgba(17,25,40,0.45)] whitespace-nowrap" href="/map">
               Launch map
-              <ArrowRight size={18} aria-hidden />
+              <ArrowRight size={14} aria-hidden />
             </Link>
-            <Link className="inline-flex items-center gap-1.5 py-3 px-5.5 rounded-full font-semibold no-underline text-sm border border-transparent transition-all bg-gradient-to-r from-gray-100 to-blue-100 text-[#05060b] shadow-[0_15px_40px_rgba(17,25,40,0.35)] hover:-translate-y-0.5 hover:shadow-[0_18px_50px_rgba(17,25,40,0.45)]" href="/density">
+            <Link className="inline-flex items-center gap-1 py-2 px-3.5 rounded-full font-semibold no-underline text-xs border border-transparent transition-all bg-gradient-to-r from-gray-100 to-blue-100 text-[#05060b] shadow-[0_15px_40px_rgba(17,25,40,0.35)] hover:-translate-y-0.5 hover:shadow-[0_18px_50px_rgba(17,25,40,0.45)] whitespace-nowrap" href="/density">
               Historical view
-              <ArrowRight size={18} aria-hidden />
+              <ArrowRight size={14} aria-hidden />
             </Link>
           </div>
         </div>
