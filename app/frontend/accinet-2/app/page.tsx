@@ -21,6 +21,7 @@ import {
 import Particles, { initParticlesEngine } from '@tsparticles/react';
 import { loadSlim } from '@tsparticles/slim';
 import type { Engine } from '@tsparticles/engine';
+import NaturalLanguageSearch from './components/NaturalLanguageSearch';
 
 type Feature = {
   title: string;
@@ -305,6 +306,13 @@ export default function LandingPage() {
             </div>
           </div>
         </section>
+
+        {/* Natural Language Search - Only shown to logged in users */}
+        {user && (
+          <section className="scroll-mt-28 opacity-0 translate-y-7" data-fade>
+            <NaturalLanguageSearch />
+          </section>
+        )}
 
         <section className="flex flex-col gap-8 mb-8 scroll-mt-28" id="features">
           <div className="rounded-3xl glass-panel glass-panel--strong opacity-0 translate-y-7 p-6 lg:p-8 text-center lg:text-left" data-fade>

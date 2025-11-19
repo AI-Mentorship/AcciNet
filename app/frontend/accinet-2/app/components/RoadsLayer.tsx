@@ -26,9 +26,21 @@ export default class RoadsLayer extends React.Component<Props> {
     const { map } = this.props;
     if (!map) return;
 
-    this.ensureSources();
-    // Disabled: /roads/bbox endpoint no longer exists in new architecture
-    // this.updateRoads();
+    // Wait for map style to load before adding sources/layers
+    if (map.isStyleLoaded()) {
+      this.ensureSources();
+      this.attachEventHandlers();
+    } else {
+      map.once('styledata', () => {
+        this.ensureSources();
+        this.attachEventHandlers();
+      });
+    }
+  }
+
+  private attachEventHandlers() {
+    const { map } = this.props;
+    if (!map) return;
 
     // Disabled: No longer listening to map movements to fetch roads
     // map.on('moveend', this.updateRoadsThrottled);
@@ -39,7 +51,7 @@ export default class RoadsLayer extends React.Component<Props> {
 
   componentWillUnmount() {
     const { map } = this.props;
-    if (!map) return;
+    if (!map || !map.getStyle()) return;
 
     // map.off('moveend', this.updateRoadsThrottled); // Disabled
     map.off('click', this.layerId, this.onRoadClick);
@@ -52,14 +64,21 @@ export default class RoadsLayer extends React.Component<Props> {
 
     this.popup?.remove();
 
-    if (map.getLayer(this.highlightLayerId)) map.removeLayer(this.highlightLayerId);
-    if (map.getSource(this.highlightSourceId)) map.removeSource(this.highlightSourceId);
-    if (map.getLayer(this.layerId)) map.removeLayer(this.layerId);
-    if (map.getSource(this.sourceId)) map.removeSource(this.sourceId);
+    try {
+      if (map.getLayer(this.highlightLayerId)) map.removeLayer(this.highlightLayerId);
+      if (map.getSource(this.highlightSourceId)) map.removeSource(this.highlightSourceId);
+      if (map.getLayer(this.layerId)) map.removeLayer(this.layerId);
+      if (map.getSource(this.sourceId)) map.removeSource(this.sourceId);
+    } catch (error) {
+      // Map might be already destroyed
+      console.warn('Error cleaning up RoadsLayer:', error);
+    }
   }
 
   private ensureSources() {
     const { map } = this.props;
+    if (!map || !map.getStyle()) return;
+    
     if (!map.getSource(this.sourceId)) {
       map.addSource(this.sourceId, {
         type: 'geojson',

@@ -5,14 +5,18 @@ import { createPortal } from 'react-dom';
 import maplibregl from 'maplibre-gl';
 import Draggable from 'react-draggable';
 import PlacesAutocomplete, { geocodeByAddress, getLatLng } from 'react-places-autocomplete';
+import { MapPin, Navigation, RotateCcw } from 'lucide-react';
 import { getCurrentLocation, fetchRoutesGoogle, type GoogleRoute } from '../lib/routes';
 
 type Props = {
   map: maplibregl.Map;
   googleKey: string;
-  onRoutes: (routes: GoogleRoute[]) => void;
+  onRoutes: (routes: GoogleRoute[], origin: { lat: number; lng: number }, destination: { lat: number; lng: number }) => void;
   maptilerKey?: string;
   onResetRoutes?: () => void;
+  initialOrigin?: string;
+  initialDestination?: string;
+  autoSearch?: boolean;
 };
 
 type State = {
@@ -22,7 +26,6 @@ type State = {
   destCoords: { lat: number; lng: number } | null;
   usingMyLocation: boolean;
   loading: boolean;
-  collapsed: boolean;
   error?: string;
 };
 
@@ -33,7 +36,6 @@ const createDefaultState = (): State => ({
   destCoords: null,
   usingMyLocation: true,
   loading: false,
-  collapsed: false,
 });
 
 export default class RouteBox extends React.Component<Props, State> {
@@ -58,8 +60,57 @@ export default class RouteBox extends React.Component<Props, State> {
     }
   }
 
-  componentDidMount() {
-    if (this.state.usingMyLocation) this.markCurrentLocation();
+  async componentDidMount() {
+    const { initialOrigin, initialDestination, autoSearch } = this.props;
+    
+    // Handle initial values from natural language search
+    if (initialDestination) {
+      this.setState({ destText: initialDestination });
+      
+      // Geocode destination
+      try {
+        const destResults = await geocodeByAddress(initialDestination);
+        const destLatLng = await getLatLng(destResults[0]);
+        this.setState({ destCoords: destLatLng });
+        
+        this.destMarker?.remove();
+        this.destMarker = new maplibregl.Marker({ color: '#f87171' })
+          .setLngLat([destLatLng.lng, destLatLng.lat])
+          .addTo(this.props.map);
+      } catch (error) {
+        console.error('Error geocoding initial destination:', error);
+        this.setState({ error: `Could not find location: ${initialDestination}` });
+      }
+    }
+    
+    if (initialOrigin) {
+      this.setState({ originText: initialOrigin, usingMyLocation: false });
+      
+      // Geocode origin
+      try {
+        const originResults = await geocodeByAddress(initialOrigin);
+        const originLatLng = await getLatLng(originResults[0]);
+        this.setState({ originCoords: originLatLng });
+        
+        this.originMarker?.remove();
+        this.originMarker = new maplibregl.Marker({ color: '#60a5fa' })
+          .setLngLat([originLatLng.lng, originLatLng.lat])
+          .addTo(this.props.map);
+      } catch (error) {
+        console.error('Error geocoding initial origin:', error);
+        this.setState({ error: `Could not find location: ${initialOrigin}` });
+      }
+    } else if (this.state.usingMyLocation) {
+      this.markCurrentLocation();
+    }
+    
+    // Auto-trigger search if requested
+    if (autoSearch && initialDestination) {
+      // Wait a bit for geocoding to complete
+      setTimeout(() => {
+        this.compute();
+      }, 1000);
+    }
   }
 
   componentWillUnmount() {
@@ -138,7 +189,7 @@ export default class RouteBox extends React.Component<Props, State> {
 
       const routes = await fetchRoutesGoogle(originLL, destCoords, this.props.googleKey);
       if (!routes.length) throw new Error('No routes found');
-      onRoutes(routes);
+      onRoutes(routes, originLL, destCoords);
       this.setState({ error: undefined });
     } catch (e: any) {
       this.setState({ error: e?.message || 'Failed to get routes' });
@@ -146,10 +197,6 @@ export default class RouteBox extends React.Component<Props, State> {
       this.setState({ loading: false });
     }
   }
-
-  private toggleCollapsed = () => {
-    this.setState((s) => ({ collapsed: !s.collapsed }));
-  };
 
   private toggleMyLocation = () => {
     this.setState((s) => {
@@ -172,74 +219,71 @@ export default class RouteBox extends React.Component<Props, State> {
   };
 
   render() {
-    const { originText, destText, usingMyLocation, loading, collapsed, error } = this.state;
+    const { originText, destText, usingMyLocation, loading, error } = this.state;
 
     const content = (
-      <Draggable handle=".drag-handle" nodeRef={this.routeDrag}>
+      <Draggable nodeRef={this.routeDrag}>
         <div
           ref={this.routeDrag}
           id="rbx-wrap"
+          className="glass-panel glass-panel--strong"
           style={{
             position: 'absolute',
             top: 16,
             left: 16,
             zIndex: 10,
-            width: 340,
+            width: 300,
             maxWidth: 'calc(100vw - 32px)',
-            backgroundColor: 'rgba(12, 18, 32, 0.95)',
-            backdropFilter: 'blur(12px)',
-            borderRadius: 16,
-            border: '1px solid rgba(56, 189, 248, 0.3)',
+            borderRadius: 12,
+            border: '1px solid rgba(255, 255, 255, 0.1)',
             boxShadow: '0 8px 32px rgba(0,0,0,0.4)',
             fontFamily: 'system-ui, sans-serif',
+            cursor: 'move',
           }}
         >
-          <div
-            className="drag-handle"
-            style={{
-              cursor: 'move',
-              padding: '12px 16px',
-              borderBottom: collapsed ? 'none' : '1px solid rgba(255,255,255,0.1)',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'space-between',
-            }}
-          >
-            <span style={{ fontSize: 15, fontWeight: 600, color: '#f0f3ff' }}>Route Planner</span>
-            <button
-              onClick={this.toggleCollapsed}
-              style={{
-                background: 'none',
-                border: 'none',
-                color: '#38bdf8',
-                cursor: 'pointer',
-                fontSize: 20,
-                padding: 4,
-              }}
-              aria-label={collapsed ? 'Expand' : 'Collapse'}
-            >
-              {collapsed ? '▼' : '▲'}
-            </button>
-          </div>
-
-          {!collapsed && (
-            <div style={{ padding: 16 }}>
-              <div style={{ marginBottom: 12 }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6 }}>
-                  <label style={{ fontSize: 13, color: '#94a3b8', fontWeight: 500 }}>Origin</label>
+            <div style={{ padding: 10 }}>
+              <div style={{ marginBottom: 8 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 6 }}>
+                  <label style={{ fontSize: 11, color: '#9ca3af', fontWeight: 500, textTransform: 'uppercase', letterSpacing: '0.05em', opacity: 0.7 }}>
+                    Origin
+                  </label>
                   <button
                     onClick={this.toggleMyLocation}
                     style={{
-                      background: usingMyLocation ? 'rgba(56, 189, 248, 0.2)' : 'rgba(255,255,255,0.05)',
-                      border: `1px solid ${usingMyLocation ? '#38bdf8' : 'rgba(255,255,255,0.1)'}`,
-                      borderRadius: 6,
-                      padding: '4px 8px',
-                      fontSize: 11,
-                      color: usingMyLocation ? '#38bdf8' : '#94a3b8',
+                      background: usingMyLocation ? 'rgba(99, 102, 241, 0.2)' : 'rgba(255,255,255,0.03)',
+                      border: `1px solid ${usingMyLocation ? 'rgba(99, 102, 241, 0.4)' : 'rgba(255,255,255,0.12)'}`,
+                      borderRadius: 5,
+                      padding: '3px 7px',
+                      fontSize: 10,
+                      color: usingMyLocation ? '#c7d2fe' : '#9ca3af',
                       cursor: 'pointer',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: 3,
+                      transition: 'all 0.2s ease',
+                      boxShadow: usingMyLocation ? '0 0 12px rgba(99, 102, 241, 0.3)' : 'none',
+                    }}
+                    onMouseOver={(e) => {
+                      if (!usingMyLocation) {
+                        e.currentTarget.style.background = 'rgba(255,255,255,0.06)';
+                        e.currentTarget.style.borderColor = 'rgba(255,255,255,0.18)';
+                        e.currentTarget.style.boxShadow = '0 0 8px rgba(255, 255, 255, 0.1)';
+                      } else {
+                        e.currentTarget.style.boxShadow = '0 0 16px rgba(99, 102, 241, 0.4)';
+                      }
+                    }}
+                    onMouseOut={(e) => {
+                      if (!usingMyLocation) {
+                        e.currentTarget.style.background = 'rgba(255,255,255,0.03)';
+                        e.currentTarget.style.borderColor = 'rgba(255,255,255,0.12)';
+                        e.currentTarget.style.boxShadow = 'none';
+                      } else {
+                        e.currentTarget.style.boxShadow = '0 0 12px rgba(99, 102, 241, 0.3)';
+                      }
                     }}
                   >
-                    📍 My Location
+                    <MapPin size={11} />
+                    My Location
                   </button>
                 </div>
                 
@@ -256,48 +300,74 @@ export default class RouteBox extends React.Component<Props, State> {
                       <div style={{ position: 'relative' }}>
                         <input
                           {...getInputProps({
-                            placeholder: 'Enter origin address...',
+                            placeholder: 'Search origin...',
                             style: {
                               width: '100%',
-                              padding: '10px 12px',
-                              backgroundColor: 'rgba(15, 23, 42, 0.8)',
-                              border: '1px solid rgba(148, 163, 184, 0.3)',
+                              padding: '8px 10px',
+                              backgroundColor: 'rgba(255, 255, 255, 0.03)',
+                              border: '1px solid rgba(255, 255, 255, 0.08)',
                               borderRadius: 8,
-                              color: '#f0f3ff',
-                              fontSize: 14,
+                              color: '#e5e7eb',
+                              fontSize: 13,
                               outline: 'none',
+                              transition: 'all 0.25s ease',
                             },
                           })}
+                          onFocus={(e) => {
+                            e.currentTarget.style.backgroundColor = 'rgba(255, 255, 255, 0.06)';
+                            e.currentTarget.style.borderColor = 'rgba(99, 102, 241, 0.4)';
+                            e.currentTarget.style.boxShadow = '0 0 16px rgba(99, 102, 241, 0.2), 0 0 4px rgba(99, 102, 241, 0.3)';
+                          }}
+                          onBlur={(e) => {
+                            e.currentTarget.style.backgroundColor = 'rgba(255, 255, 255, 0.03)';
+                            e.currentTarget.style.borderColor = 'rgba(255, 255, 255, 0.08)';
+                            e.currentTarget.style.boxShadow = 'none';
+                          }}
+                          onMouseEnter={(e) => {
+                            if (document.activeElement !== e.currentTarget) {
+                              e.currentTarget.style.backgroundColor = 'rgba(255, 255, 255, 0.05)';
+                              e.currentTarget.style.borderColor = 'rgba(255, 255, 255, 0.15)';
+                            }
+                          }}
+                          onMouseLeave={(e) => {
+                            if (document.activeElement !== e.currentTarget) {
+                              e.currentTarget.style.backgroundColor = 'rgba(255, 255, 255, 0.03)';
+                              e.currentTarget.style.borderColor = 'rgba(255, 255, 255, 0.08)';
+                            }
+                          }}
                         />
                         {(suggestions.length > 0 || searching) && (
                           <div
+                            className="glass-panel glass-panel--strong"
                             style={{
                               position: 'absolute',
                               top: '100%',
                               left: 0,
                               right: 0,
-                              marginTop: 4,
-                              backgroundColor: 'rgba(15, 23, 42, 0.98)',
-                              border: '1px solid rgba(148, 163, 184, 0.3)',
+                              marginTop: 6,
+                              border: '1px solid rgba(255, 255, 255, 0.15)',
                               borderRadius: 8,
                               maxHeight: 200,
                               overflowY: 'auto',
                               zIndex: 1000,
+                              boxShadow: '0 8px 32px rgba(0, 0, 0, 0.5)',
                             }}
                           >
                             {searching && (
-                              <div style={{ padding: 12, color: '#94a3b8', fontSize: 13 }}>Loading...</div>
+                              <div style={{ padding: 10, color: '#9ca3af', fontSize: 12 }}>Loading...</div>
                             )}
                             {suggestions.map((suggestion) => (
                               <div
                                 {...getSuggestionItemProps(suggestion, {
                                   style: {
-                                    padding: '10px 12px',
+                                    padding: '8px 10px',
                                     cursor: 'pointer',
-                                    backgroundColor: suggestion.active ? 'rgba(56, 189, 248, 0.1)' : 'transparent',
-                                    color: '#f0f3ff',
-                                    fontSize: 13,
+                                    backgroundColor: suggestion.active ? 'rgba(99, 102, 241, 0.15)' : 'transparent',
+                                    color: '#e5e7eb',
+                                    fontSize: 12,
                                     borderBottom: '1px solid rgba(255,255,255,0.05)',
+                                    transition: 'all 0.15s ease',
+                                    boxShadow: suggestion.active ? '0 0 12px rgba(99, 102, 241, 0.2)' : 'none',
                                   },
                                 })}
                               >
@@ -313,21 +383,26 @@ export default class RouteBox extends React.Component<Props, State> {
                 {usingMyLocation && (
                   <div
                     style={{
-                      padding: '10px 12px',
-                      backgroundColor: 'rgba(56, 189, 248, 0.1)',
-                      border: '1px solid rgba(56, 189, 248, 0.3)',
+                      padding: '8px 10px',
+                      backgroundColor: 'rgba(99, 102, 241, 0.12)',
+                      border: '1px solid rgba(99, 102, 241, 0.3)',
                       borderRadius: 8,
-                      color: '#38bdf8',
-                      fontSize: 13,
+                      color: '#c7d2fe',
+                      fontSize: 12,
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: 6,
+                      boxShadow: '0 0 12px rgba(99, 102, 241, 0.2)',
                     }}
                   >
+                    <MapPin size={12} />
                     Using current location
                   </div>
                 )}
               </div>
 
-              <div style={{ marginBottom: 16 }}>
-                <label style={{ fontSize: 13, color: '#94a3b8', fontWeight: 500, marginBottom: 6, display: 'block' }}>
+              <div style={{ marginBottom: 8 }}>
+                <label style={{ fontSize: 11, color: '#9ca3af', fontWeight: 500, marginBottom: 6, display: 'block', textTransform: 'uppercase', letterSpacing: '0.05em', opacity: 0.7 }}>
                   Destination
                 </label>
                 <PlacesAutocomplete
@@ -342,48 +417,74 @@ export default class RouteBox extends React.Component<Props, State> {
                     <div style={{ position: 'relative' }}>
                       <input
                         {...getInputProps({
-                          placeholder: 'Enter destination address...',
+                          placeholder: 'Search destination...',
                           style: {
                             width: '100%',
-                            padding: '10px 12px',
-                            backgroundColor: 'rgba(15, 23, 42, 0.8)',
-                            border: '1px solid rgba(148, 163, 184, 0.3)',
+                            padding: '8px 10px',
+                            backgroundColor: 'rgba(255, 255, 255, 0.03)',
+                            border: '1px solid rgba(255, 255, 255, 0.08)',
                             borderRadius: 8,
-                            color: '#f0f3ff',
-                            fontSize: 14,
+                            color: '#e5e7eb',
+                            fontSize: 13,
                             outline: 'none',
+                            transition: 'all 0.25s ease',
                           },
                         })}
+                        onFocus={(e) => {
+                          e.currentTarget.style.backgroundColor = 'rgba(255, 255, 255, 0.06)';
+                          e.currentTarget.style.borderColor = 'rgba(99, 102, 241, 0.4)';
+                          e.currentTarget.style.boxShadow = '0 0 16px rgba(99, 102, 241, 0.2), 0 0 4px rgba(99, 102, 241, 0.3)';
+                        }}
+                        onBlur={(e) => {
+                          e.currentTarget.style.backgroundColor = 'rgba(255, 255, 255, 0.03)';
+                          e.currentTarget.style.borderColor = 'rgba(255, 255, 255, 0.08)';
+                          e.currentTarget.style.boxShadow = 'none';
+                        }}
+                        onMouseEnter={(e) => {
+                          if (document.activeElement !== e.currentTarget) {
+                            e.currentTarget.style.backgroundColor = 'rgba(255, 255, 255, 0.05)';
+                            e.currentTarget.style.borderColor = 'rgba(255, 255, 255, 0.15)';
+                          }
+                        }}
+                        onMouseLeave={(e) => {
+                          if (document.activeElement !== e.currentTarget) {
+                            e.currentTarget.style.backgroundColor = 'rgba(255, 255, 255, 0.03)';
+                            e.currentTarget.style.borderColor = 'rgba(255, 255, 255, 0.08)';
+                          }
+                        }}
                       />
                       {(suggestions.length > 0 || searching) && (
                         <div
+                          className="glass-panel glass-panel--strong"
                           style={{
                             position: 'absolute',
                             top: '100%',
                             left: 0,
                             right: 0,
-                            marginTop: 4,
-                            backgroundColor: 'rgba(15, 23, 42, 0.98)',
-                            border: '1px solid rgba(148, 163, 184, 0.3)',
+                            marginTop: 6,
+                            border: '1px solid rgba(255, 255, 255, 0.15)',
                             borderRadius: 8,
                             maxHeight: 200,
                             overflowY: 'auto',
                             zIndex: 1000,
+                            boxShadow: '0 8px 32px rgba(0, 0, 0, 0.5)',
                           }}
                         >
                           {searching && (
-                            <div style={{ padding: 12, color: '#94a3b8', fontSize: 13 }}>Loading...</div>
+                            <div style={{ padding: 10, color: '#9ca3af', fontSize: 12 }}>Loading...</div>
                           )}
                           {suggestions.map((suggestion) => (
                             <div
                               {...getSuggestionItemProps(suggestion, {
                                 style: {
-                                  padding: '10px 12px',
+                                  padding: '8px 10px',
                                   cursor: 'pointer',
-                                  backgroundColor: suggestion.active ? 'rgba(56, 189, 248, 0.1)' : 'transparent',
-                                  color: '#f0f3ff',
-                                  fontSize: 13,
+                                  backgroundColor: suggestion.active ? 'rgba(99, 102, 241, 0.15)' : 'transparent',
+                                  color: '#e5e7eb',
+                                  fontSize: 12,
                                   borderBottom: '1px solid rgba(255,255,255,0.05)',
+                                  transition: 'all 0.15s ease',
+                                  boxShadow: suggestion.active ? '0 0 12px rgba(99, 102, 241, 0.2)' : 'none',
                                 },
                               })}
                             >
@@ -400,55 +501,88 @@ export default class RouteBox extends React.Component<Props, State> {
               {error && (
                 <div
                   style={{
-                    padding: '8px 12px',
-                    backgroundColor: 'rgba(248, 113, 113, 0.1)',
-                    border: '1px solid rgba(248, 113, 113, 0.3)',
+                    padding: '6px 10px',
+                    backgroundColor: 'rgba(239, 68, 68, 0.12)',
+                    border: '1px solid rgba(239, 68, 68, 0.3)',
                     borderRadius: 8,
                     color: '#fca5a5',
-                    fontSize: 12,
-                    marginBottom: 12,
+                    fontSize: 11,
+                    marginBottom: 8,
+                    boxShadow: '0 0 12px rgba(239, 68, 68, 0.15)',
                   }}
                 >
                   {error}
                 </div>
               )}
 
-              <div style={{ display: 'flex', gap: 8 }}>
+              <div style={{ display: 'flex', gap: 6 }}>
                 <button
                   onClick={() => this.compute()}
                   disabled={loading || (!usingMyLocation && !originText) || !destText}
                   style={{
                     flex: 1,
-                    padding: '10px 16px',
-                    backgroundColor: loading ? 'rgba(148, 163, 184, 0.2)' : 'rgba(56, 189, 248, 0.2)',
-                    border: '1px solid rgba(56, 189, 248, 0.4)',
+                    padding: '7px 10px',
+                    backgroundColor: loading ? 'rgba(255, 255, 255, 0.05)' : 'rgba(99, 102, 241, 0.2)',
+                    border: `1px solid ${loading ? 'rgba(255, 255, 255, 0.12)' : 'rgba(99, 102, 241, 0.4)'}`,
                     borderRadius: 8,
-                    color: loading ? '#94a3b8' : '#38bdf8',
+                    color: loading ? '#9ca3af' : '#c7d2fe',
                     fontWeight: 600,
-                    fontSize: 14,
-                    cursor: loading ? 'not-allowed' : 'pointer',
+                    fontSize: 13,
+                    cursor: loading || (!usingMyLocation && !originText) || !destText ? 'not-allowed' : 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: 5,
+                    transition: 'all 0.25s ease',
+                    opacity: loading || (!usingMyLocation && !originText) || !destText ? 0.5 : 1,
+                    boxShadow: (!loading && (usingMyLocation || originText) && destText) ? '0 0 0px rgba(99, 102, 241, 0.3)' : 'none',
+                  }}
+                  onMouseOver={(e) => {
+                    if (!loading && (usingMyLocation || originText) && destText) {
+                      e.currentTarget.style.backgroundColor = 'rgba(99, 102, 241, 0.25)';
+                      e.currentTarget.style.boxShadow = '0 0 16px rgba(99, 102, 241, 0.35), 0 0 4px rgba(99, 102, 241, 0.4)';
+                    }
+                  }}
+                  onMouseOut={(e) => {
+                    if (!loading) {
+                      e.currentTarget.style.backgroundColor = 'rgba(99, 102, 241, 0.2)';
+                      e.currentTarget.style.boxShadow = '0 0 0px rgba(99, 102, 241, 0.3)';
+                    }
                   }}
                 >
+                  <Navigation size={13} />
                   {loading ? 'Routing...' : 'Get routes'}
                 </button>
                 <button
                   onClick={this.reset}
                   style={{
-                    padding: '10px 16px',
-                    backgroundColor: 'rgba(248, 113, 113, 0.1)',
-                    border: '1px solid rgba(248, 113, 113, 0.3)',
+                    padding: '7px 10px',
+                    backgroundColor: 'rgba(239, 68, 68, 0.12)',
+                    border: '1px solid rgba(239, 68, 68, 0.3)',
                     borderRadius: 8,
-                    color: '#f87171',
+                    color: '#fca5a5',
                     fontWeight: 600,
-                    fontSize: 14,
+                    fontSize: 13,
                     cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    transition: 'all 0.25s ease',
+                    boxShadow: '0 0 0px rgba(239, 68, 68, 0.2)',
+                  }}
+                  onMouseOver={(e) => {
+                    e.currentTarget.style.backgroundColor = 'rgba(239, 68, 68, 0.2)';
+                    e.currentTarget.style.boxShadow = '0 0 14px rgba(239, 68, 68, 0.3), 0 0 4px rgba(239, 68, 68, 0.4)';
+                  }}
+                  onMouseOut={(e) => {
+                    e.currentTarget.style.backgroundColor = 'rgba(239, 68, 68, 0.12)';
+                    e.currentTarget.style.boxShadow = '0 0 0px rgba(239, 68, 68, 0.2)';
                   }}
                 >
-                  Reset
+                  <RotateCcw size={13} />
                 </button>
               </div>
             </div>
-          )}
         </div>
       </Draggable>
     );

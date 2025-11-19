@@ -53,7 +53,17 @@ type RouteTheme = 'safe' | 'moderate' | 'risky';
 const INITIAL_CENTER: [number, number] = [-96.8, 32.9];
 const INITIAL_ZOOM = 10;
 
-const AcciNetMap: React.FC = () => {
+interface AcciNetMapProps {
+  initialOrigin?: string;
+  initialDestination?: string;
+  autoSearch?: boolean;
+}
+
+const AcciNetMap: React.FC<AcciNetMapProps> = ({ 
+  initialOrigin, 
+  initialDestination, 
+  autoSearch = false 
+}) => {
   const containerRef = useRef<HTMLDivElement | null>(null);
   const mapRef = useRef<maplibregl.Map | null>(null);
   const mapStyledRef = useRef(false);
@@ -67,6 +77,8 @@ const AcciNetMap: React.FC = () => {
   const [safestIdx, setSafestIdx] = useState(-1);
   const [fastestIdx, setFastestIdx] = useState(-1);
   const [fuelIdx, setFuelIdx] = useState(-1);
+  const [routeOrigin, setRouteOrigin] = useState<{ lat: number; lng: number } | null>(null);
+  const [routeDestination, setRouteDestination] = useState<{ lat: number; lng: number } | null>(null);
 
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [showHex, setShowHex] = useState(false);
@@ -233,8 +245,12 @@ const AcciNetMap: React.FC = () => {
     };
   }, [applyMapStyling]);
 
-  const onRoutes = useCallback((incoming: GoogleRoute[]) => {
+  const onRoutes = useCallback((incoming: GoogleRoute[], origin: { lat: number; lng: number }, destination: { lat: number; lng: number }) => {
     console.log(`[AcciNetMap] Received ${incoming.length} route(s) from Google Maps API`);
+    
+    // Store origin and destination for Google Maps links
+    setRouteOrigin(origin);
+    setRouteDestination(destination);
     
     if (!incoming.length) {
       setRoutes([]);
@@ -324,6 +340,8 @@ const AcciNetMap: React.FC = () => {
     setFuelIdx(-1);
     setSelectedRouteIds(new Set());
     setRoutePopup(null);
+    setRouteOrigin(null);
+    setRouteDestination(null);
   }, []);
 
   const gradientRoutes = useMemo(() => {
@@ -359,8 +377,11 @@ const AcciNetMap: React.FC = () => {
       avgRisk: route.avgRisk,
       durationSec: route.durationSec,
       distanceMeters: route.distanceMeters,
+      origin: routeOrigin,
+      destination: routeDestination,
+      coords: route.coords, // Pass the actual route coordinates
     }));
-  }, [routes]);
+  }, [routes, routeOrigin, routeDestination]);
 
   const handleRouteToggle = useCallback((routeId: string) => {
     setSelectedRouteIds((prev) => {
@@ -562,6 +583,9 @@ const AcciNetMap: React.FC = () => {
               maptilerKey={MAPTILER_KEY}
               onRoutes={onRoutes}
               onResetRoutes={resetRoutes}
+              initialOrigin={initialOrigin}
+              initialDestination={initialDestination}
+              autoSearch={autoSearch}
             />
 
           <WeatherBox map={mapRef.current} googleKey={GOOGLE_API_KEY} />
