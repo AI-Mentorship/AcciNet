@@ -21,6 +21,15 @@ import TomTomTrafficLayer from './TomTomTrafficLayer';
 import TomTomTrafficLegend from './TomTomTrafficLegend';
 import RouteSelector from './RouteSelector';
 import RoutePopup from './RoutePopup';
+import HistoricalCrashDensityLayer from './HistoricalCrashDensityLayer';
+import TimeSeriesSelector from './TimeSeriesSelector';
+import Draggable from 'react-draggable';
+import {
+  parseHistoricalData,
+  getAvailableYears,
+  filterByYearRange,
+  type HistoricalCellRecord,
+} from '../lib/historicalData';
 
 type RouteItem = {
   coords: [number, number][];
@@ -73,6 +82,17 @@ const AcciNetMap: React.FC = () => {
     condition: any;
     position: { x: number; y: number };
   } | null>(null);
+
+  // Historical heat map state
+  const [showHistoricalHeatmap, setShowHistoricalHeatmap] = useState(false);
+  const [historicalData, setHistoricalData] = useState<HistoricalCellRecord[]>([]);
+  const [historicalLoading, setHistoricalLoading] = useState(false);
+  const [historicalError, setHistoricalError] = useState<string | null>(null);
+  const [selectedRange, setSelectedRange] = useState<{ start: number; end: number } | null>(null);
+  const [heatmapRadius, setHeatmapRadius] = useState(50);
+  const [heatmapOpacity, setHeatmapOpacity] = useState(0.7);
+  const [updating, setUpdating] = useState(false);
+  const timeSeriesDrag = useRef<HTMLDivElement>(null);
 
   const applyMapStyling = useCallback((map: maplibregl.Map) => {
     const style = map.getStyle();
@@ -342,6 +362,105 @@ const AcciNetMap: React.FC = () => {
     setSelectedRouteIds(new Set());
   }, []);
 
+  // Historical data utilities
+  const availableYears = useMemo(() => getAvailableYears(historicalData), [historicalData]);
+  const filteredHistoricalData = useMemo(() => {
+    if (!selectedRange || !historicalData.length) return [];
+    return filterByYearRange(historicalData, selectedRange.start, selectedRange.end);
+  }, [historicalData, selectedRange]);
+
+  // Load historical data when toggle is enabled
+  useEffect(() => {
+    if (!showHistoricalHeatmap) {
+      setHistoricalData([]);
+      setSelectedRange(null);
+      return;
+    }
+
+    const loadData = async () => {
+      try {
+        setHistoricalLoading(true);
+        setHistoricalError(null);
+
+        const response = await fetch('/historical_all_cells.json');
+        if (!response.ok) {
+          throw new Error(`Failed to fetch historical data: ${response.status}`);
+        }
+
+        const rawData = await response.json();
+        const parsed = parseHistoricalData(rawData);
+        setHistoricalData(parsed);
+
+        if (parsed.length > 0) {
+          const years = getAvailableYears(parsed);
+          const latest = years[years.length - 1];
+          setSelectedRange({ start: latest, end: latest });
+        }
+      } catch (err: any) {
+        console.error('Error loading historical data:', err);
+        setHistoricalError(err.message || 'Failed to load historical crash data');
+      } finally {
+        setHistoricalLoading(false);
+      }
+    };
+
+    loadData();
+  }, [showHistoricalHeatmap]);
+
+  // Update selected range when available years change
+  useEffect(() => {
+    if (!showHistoricalHeatmap || !availableYears.length) return;
+
+    setSelectedRange((prev) => {
+      if (!prev) {
+        const latest = availableYears[availableYears.length - 1];
+        return { start: latest, end: latest };
+      }
+
+      const clampToYears = (year: number) => {
+        if (availableYears.includes(year)) return year;
+        let closest = availableYears[0];
+        let minDiff = Math.abs(year - closest);
+        for (const candidate of availableYears) {
+          const diff = Math.abs(candidate - year);
+          if (diff < minDiff) {
+            minDiff = diff;
+            closest = candidate;
+          }
+        }
+        return closest;
+      };
+
+      const clampedStart = clampToYears(prev.start);
+      const clampedEnd = clampToYears(prev.end);
+      const start = Math.min(clampedStart, clampedEnd);
+      const end = Math.max(clampedStart, clampedEnd);
+
+      if (start === prev.start && end === prev.end) return prev;
+      return { start, end };
+    });
+  }, [availableYears, showHistoricalHeatmap]);
+
+  // Handle historical heat map controls
+  const handleRadiusChange = useCallback((value: number) => {
+    setHeatmapRadius(value);
+    setUpdating(true);
+  }, []);
+
+  const handleOpacityChange = useCallback((value: number) => {
+    setHeatmapOpacity(value);
+    setUpdating(true);
+  }, []);
+
+  const handleRangeChange = useCallback((start: number, end: number) => {
+    setUpdating(true);
+    setSelectedRange({ start, end });
+  }, []);
+
+  const handleUpdateComplete = useCallback(() => {
+    setUpdating(false);
+  }, []);
+
   const handleRouteClick = useCallback((e: maplibregl.MapLayerMouseEvent, routeId: string) => {
     const routeIdx = parseInt(routeId.replace('route-', ''));
     const route = routes[routeIdx];
@@ -454,6 +573,54 @@ const AcciNetMap: React.FC = () => {
             />
           )}
 
+          {/* Time Series Selector - only show when historical heatmap is enabled */}
+          {showHistoricalHeatmap && mapLoaded && availableYears.length > 0 && selectedRange && (
+            <div className="fixed top-4 left-1/2 -translate-x-1/2 z-[2147483647] pointer-events-none">
+              <Draggable handle=".drag-handle" nodeRef={timeSeriesDrag}>
+                <div className="drag-handle w-full cursor-grab" ref={timeSeriesDrag}>
+                  <TimeSeriesSelector
+                    years={availableYears}
+                    range={selectedRange}
+                    onRangeChange={handleRangeChange}
+                    className="pointer-events-auto"
+                  />
+                </div>
+              </Draggable>
+            </div>
+          )}
+
+          {/* Historical Heatmap Layer - only show when toggle is enabled */}
+          {showHistoricalHeatmap && mapLoaded && mapRef.current && selectedRange && filteredHistoricalData.length > 0 && (
+            <HistoricalCrashDensityLayer
+              map={mapRef.current}
+              enabled={true}
+              data={filteredHistoricalData}
+              radiusPx={heatmapRadius}
+              opacity={heatmapOpacity}
+              onUpdateComplete={handleUpdateComplete}
+            />
+          )}
+
+          {/* Loading/Error States for historical data */}
+          {showHistoricalHeatmap && (historicalLoading || updating) && (
+            <div className="fixed inset-0 z-[2147483648] flex items-center justify-center pointer-events-none">
+              <div className="glass-panel glass-panel--strong rounded-2xl p-6 pointer-events-auto">
+                <div className="text-white text-center">
+                  <div className="animate-spin w-8 h-8 border-2 border-indigo-500 border-t-transparent rounded-full mx-auto mb-3" />
+                  <p className="text-sm">{historicalLoading ? 'Loading historical crash data...' : 'Updating visualization...'}</p>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {showHistoricalHeatmap && historicalError && (
+            <div className="fixed top-4 left-4 z-[2147483648] pointer-events-none">
+              <div className="glass-panel glass-panel--strong rounded-2xl p-4 pointer-events-auto border border-red-500/30 bg-red-500/10">
+                <p className="text-sm text-red-200 m-0">{historicalError}</p>
+              </div>
+            </div>
+          )}
+
           <ConfigBox onOpenSidebar={() => setSidebarOpen(true)} />
 
           <Sidebar
@@ -475,6 +642,12 @@ const AcciNetMap: React.FC = () => {
             selectType={selectType}
             onModeChange={(mode) => setViewMode(mode)}
             onSelectTypeChange={(mode) => setSelectType(mode)}
+            showHistoricalHeatmap={showHistoricalHeatmap}
+            onToggleHistoricalHeatmap={setShowHistoricalHeatmap}
+            heatmapRadius={heatmapRadius}
+            onHeatmapRadiusChange={handleRadiusChange}
+            heatmapOpacity={heatmapOpacity}
+            onHeatmapOpacityChange={handleOpacityChange}
           />
 
           {showTraffic && (

@@ -69,11 +69,6 @@ const features: Feature[] = [
     copy: 'Drop the AcciNet experience into any dashboard with a lightweight API.',
     icon: Sparkles,
   },
-  {
-    title: 'Historical crash analysis',
-    copy: 'Explore time-series heatmaps of historical crash density across Texas with interactive year range selection.',
-    icon: Activity,
-  },
 ];
 
 const pipeline: PipelineStep[] = [
@@ -244,10 +239,6 @@ export default function LandingPage() {
               Launch map
               <ArrowRight size={14} aria-hidden />
             </Link>
-            <Link className="inline-flex items-center gap-1 py-2 px-3.5 rounded-full font-semibold no-underline text-xs border border-transparent transition-all bg-gradient-to-r from-gray-100 to-blue-100 text-[#05060b] shadow-[0_15px_40px_rgba(17,25,40,0.35)] hover:-translate-y-0.5 hover:shadow-[0_18px_50px_rgba(17,25,40,0.45)] whitespace-nowrap" href="/density">
-              Historical view
-              <ArrowRight size={14} aria-hidden />
-            </Link>
           </div>
         </div>
       </header>
@@ -260,15 +251,11 @@ export default function LandingPage() {
             <p className="text-[rgba(240,243,255,0.75)] text-base leading-relaxed max-w-[520px] m-0 mx-auto lg:mx-0">
               AcciNet fuses live traffic, weather, and historical crash intelligence to highlight safer
               corridors before an incident builds. Switch between gradient routes and hex overlays without
-              losing context. Explore historical crash patterns with interactive time-series heatmaps.
+              losing context.
             </p>
             <div className="flex flex-wrap justify-center lg:justify-start gap-3.5 mt-7">
               <Link className="glass-button text-sm font-semibold no-underline inline-flex items-center gap-1.5 py-3 px-5.5" href="/map">
                 Launch map
-                <ArrowRight size={18} aria-hidden />
-              </Link>
-              <Link className="glass-button text-sm font-semibold no-underline inline-flex items-center gap-1.5 py-3 px-5.5" href="/density">
-                Historical view
                 <ArrowRight size={18} aria-hidden />
               </Link>
               <a className="glass-chip inline-flex items-center gap-1.5 no-underline" href="#features" onClick={handleSmoothScroll}>

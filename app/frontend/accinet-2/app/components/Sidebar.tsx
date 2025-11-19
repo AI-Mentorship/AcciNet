@@ -22,6 +22,12 @@ type Props = {
   selectType: 'segment' | 'points';
   onModeChange: (m: 'historical' | 'predictive') => void;
   onSelectTypeChange: (s: 'segment' | 'points') => void;
+  showHistoricalHeatmap: boolean;
+  onToggleHistoricalHeatmap: (v: boolean) => void;
+  heatmapRadius: number;
+  onHeatmapRadiusChange: (value: number) => void;
+  heatmapOpacity: number;
+  onHeatmapOpacityChange: (value: number) => void;
 };
 
 export default function Sidebar({
@@ -43,6 +49,12 @@ export default function Sidebar({
   selectType,
   onModeChange,
   onSelectTypeChange,
+  showHistoricalHeatmap,
+  onToggleHistoricalHeatmap,
+  heatmapRadius,
+  onHeatmapRadiusChange,
+  heatmapOpacity,
+  onHeatmapOpacityChange,
 }: Props) {
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => e.key === 'Escape' && onClose();
@@ -79,7 +91,7 @@ export default function Sidebar({
           </div>
           <button
             onClick={onClose}
-            className="rounded-full border border-white/15 bg-white/6 text-gray-400 w-[26px] h-[26px] flex items-center justify-center cursor-pointer hover:bg-white/10 transition-colors"
+            className="rounded-full border border-white/15 bg-white/6 text-gray-400 w-[26px] h-[26px] flex items-center justify-center cursor-pointer transition-colors"
           >
             ✕
           </button>
@@ -92,21 +104,21 @@ export default function Sidebar({
               <Map size={13} /> Map Appearance
             </h3>
             <div
-              className="bg-white/4 border border-white/8 rounded-xl p-2.5 px-3 mb-2.5 flex items-center justify-between px-2.5 py-2 rounded-[10px] bg-white/5 border border-white/10 cursor-pointer transition-colors hover:bg-white/8"
+              className="bg-white/4 border border-white/8 rounded-xl p-2.5 px-3 mb-2.5 flex items-center justify-between px-2.5 py-2 rounded-[10px] bg-white/5 border border-white/10 cursor-pointer transition-colors"
               onClick={() => onToggleHex(!showHex)}
             >
               <span>Hex Risk Grid</span>
               <SwitchIndicator active={showHex} />
             </div>
             <div
-              className="bg-white/4 border border-white/8 rounded-xl p-2.5 px-3 mb-2.5 flex items-center justify-between px-2.5 py-2 rounded-[10px] bg-white/5 border border-white/10 cursor-pointer transition-colors hover:bg-white/8"
+              className="bg-white/4 border border-white/8 rounded-xl p-2.5 px-3 mb-2.5 flex items-center justify-between px-2.5 py-2 rounded-[10px] bg-white/5 border border-white/10 cursor-pointer transition-colors"
               onClick={() => onToggleGlow(!showGlow)}
             >
               <span>Circular Risk Gradients</span>
               <SwitchIndicator active={showGlow} />
             </div>
             <div
-              className="bg-white/4 border border-white/8 rounded-xl p-2.5 px-3 mb-2.5 flex items-center justify-between px-2.5 py-2 rounded-[10px] bg-white/5 border border-white/10 cursor-pointer transition-colors hover:bg-white/8"
+              className="bg-white/4 border border-white/8 rounded-xl p-2.5 px-3 mb-2.5 flex items-center justify-between px-2.5 py-2 rounded-[10px] bg-white/5 border border-white/10 cursor-pointer transition-colors"
               onClick={() => onToggleRoadRisk(!showRoadRisk)}
             >
               <span className="flex items-center gap-1.5">
@@ -115,7 +127,7 @@ export default function Sidebar({
               <SwitchIndicator active={showRoadRisk} />
             </div>
             <div
-              className="bg-white/4 border border-white/8 rounded-xl p-2.5 px-3 mb-2.5 flex items-center justify-between px-2.5 py-2 rounded-[10px] bg-white/5 border border-white/10 cursor-pointer transition-colors hover:bg-white/8"
+              className="bg-white/4 border border-white/8 rounded-xl p-2.5 px-3 mb-2.5 flex items-center justify-between px-2.5 py-2 rounded-[10px] bg-white/5 border border-white/10 cursor-pointer transition-colors"
               onClick={() => onToggleTraffic(!showTraffic)}
             >
               <span className="flex items-center gap-1.5">
@@ -124,13 +136,22 @@ export default function Sidebar({
               <SwitchIndicator active={showTraffic} />
             </div>
             <div
-              className="bg-white/4 border border-white/8 rounded-xl p-2.5 px-3 mb-2.5 flex items-center justify-between px-2.5 py-2 rounded-[10px] bg-white/5 border border-white/10 cursor-pointer transition-colors hover:bg-white/8"
+              className="bg-white/4 border border-white/8 rounded-xl p-2.5 px-3 mb-2.5 flex items-center justify-between px-2.5 py-2 rounded-[10px] bg-white/5 border border-white/10 cursor-pointer transition-colors"
               onClick={() => onToggleTomTomTraffic(!showTomTomTraffic)}
             >
               <span className="flex items-center gap-1.5">
                 <Navigation size={14} /> TomTom Traffic Density
               </span>
               <SwitchIndicator active={showTomTomTraffic} />
+            </div>
+            <div
+              className="bg-white/4 border border-white/8 rounded-xl p-2.5 px-3 mb-2.5 flex items-center justify-between px-2.5 py-2 rounded-[10px] bg-white/5 border border-white/10 cursor-pointer transition-colors"
+              onClick={() => onToggleHistoricalHeatmap(!showHistoricalHeatmap)}
+            >
+              <span className="flex items-center gap-1.5">
+                <Layers size={14} /> Historical Heat Map
+              </span>
+              <SwitchIndicator active={showHistoricalHeatmap} />
             </div>
             <div className="bg-white/4 border border-white/8 rounded-xl p-2.5 px-3 mb-2.5">
               <div className="flex justify-between">
@@ -147,6 +168,40 @@ export default function Sidebar({
                 className="w-full mt-2"
               />
             </div>
+            {showHistoricalHeatmap && (
+              <>
+                <div className="bg-white/4 border border-white/8 rounded-xl p-2.5 px-3 mb-2.5">
+                  <div className="flex justify-between">
+                    <span>Heatmap Radius</span>
+                    <span className="text-xs opacity-75">{heatmapRadius}px</span>
+                  </div>
+                  <input
+                    type="range"
+                    min={20}
+                    max={100}
+                    step={5}
+                    value={heatmapRadius}
+                    onChange={(e) => onHeatmapRadiusChange(Number(e.target.value))}
+                    className="w-full mt-2"
+                  />
+                </div>
+                <div className="bg-white/4 border border-white/8 rounded-xl p-2.5 px-3 mb-2.5">
+                  <div className="flex justify-between">
+                    <span>Heatmap Opacity</span>
+                    <span className="text-xs opacity-75">{Math.round(heatmapOpacity * 100)}%</span>
+                  </div>
+                  <input
+                    type="range"
+                    min={0.1}
+                    max={1}
+                    step={0.05}
+                    value={heatmapOpacity}
+                    onChange={(e) => onHeatmapOpacityChange(Number(e.target.value))}
+                    className="w-full mt-2"
+                  />
+                </div>
+              </>
+            )}
           </div>
 
           {/* View modes */}
@@ -160,7 +215,7 @@ export default function Sidebar({
                 {['predictive', 'historical'].map((m) => (
                   <button
                     key={m}
-                    className={`flex-1 px-2.5 py-1.5 rounded-lg border border-white/15 bg-white/7 text-white cursor-pointer font-medium transition-all hover:bg-white/12 ${
+                    className={`flex-1 px-2.5 py-1.5 rounded-lg border border-white/15 bg-white/7 text-white cursor-pointer font-medium transition-all ${
                       viewMode === m ? 'bg-indigo-600 border-white/25' : ''
                     }`}
                     onClick={() => onModeChange(m as any)}
@@ -176,7 +231,7 @@ export default function Sidebar({
                 {['segment', 'points'].map((s) => (
                   <button
                     key={s}
-                    className={`flex-1 px-2.5 py-1.5 rounded-lg border border-white/15 bg-white/7 text-white cursor-pointer font-medium transition-all hover:bg-white/12 ${
+                    className={`flex-1 px-2.5 py-1.5 rounded-lg border border-white/15 bg-white/7 text-white cursor-pointer font-medium transition-all ${
                       selectType === s ? 'bg-indigo-600 border-white/25' : ''
                     }`}
                     onClick={() => onSelectTypeChange(s as any)}

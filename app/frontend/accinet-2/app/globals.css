@@ -60,7 +60,6 @@ body {
 }
 
 .glass-panel--strong:hover {
-  transform: scale(1.05);
   border-color: #06b6d4;
   box-shadow: 0 0 20px rgba(6, 182, 212, 0.6), var(--shadow-strong);
 }
