@@ -23,7 +23,7 @@ load_dotenv()
 app = FastAPI()
 gmaps = googlemaps.Client(key=os.getenv("GOOGLE_MAPS_API_KEY"))
 
-usingRedis = True
+usingRedis = False   
 if(usingRedis):
     redis_client = redis.from_url("redis://localhost:6379",decode_responses=True)
 else:
@@ -198,7 +198,10 @@ async def fetch_weather_for_coords(coords: List[Tuple[float, float]], sample_int
     
     # Check cache and prepare fetch tasks
     for weather_key, coord_list in weather_grid_map.items():
-        cached_weather = await redis_client.get(f"weather:{weather_key}")
+        if(usingRedis):
+            cached_weather = await redis_client.get(f"weather:{weather_key}")
+        else:
+            cached_weather = False
         if cached_weather:
             weather_cache[weather_key] = json.loads(cached_weather)
         else:
@@ -209,7 +212,8 @@ async def fetch_weather_for_coords(coords: List[Tuple[float, float]], sample_int
     if weather_tasks:
         async def fetch_weather_task(weather_key, grid_lat, grid_lon):
             weather_data = await fetch_weather(grid_lat, grid_lon, use_grid=False)
-            await redis_client.set(f"weather:{weather_key}", json.dumps(weather_data), ex=3600)
+            if(usingRedis):
+                await redis_client.set(f"weather:{weather_key}", json.dumps(weather_data), ex=3600)
             return weather_key, weather_data
         
         weather_results = await asyncio.gather(
@@ -334,9 +338,7 @@ async def get_sampled_conditions(encoded_polyline: str, sample_interval: int = 8
             "lat": round(lat, 5),  # Reduce precision to save space
             "lon": round(lon, 5),
             "weathercode": weather.get("current_weather", {}).get("weathercode"),
-            "temperature": weather.get("current_weather", {}).get("temperature"),
             "road_type": road.get("road_type"),
-            "road_name": road.get("name")
         })
     
     return conditions
