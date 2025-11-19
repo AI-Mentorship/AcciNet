@@ -121,6 +121,10 @@ export default class RouteGradientLayer extends React.Component<Props> {
     console.log(`[RouteGradientLayer] Moving layers to top`);
     map.moveLayer(halo);
     map.moveLayer(grad);
+
+    const midpoint = coords[Math.round(coords.length / 2)];
+    const marker = new maplibregl.Marker().setLngLat(midpoint).addTo(map);
+
   };
 
   private setupClickHandler = () => {
