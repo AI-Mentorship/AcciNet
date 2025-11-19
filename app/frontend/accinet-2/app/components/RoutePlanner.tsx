@@ -122,18 +122,11 @@ export default function RoutePlanner({ onRoutesLoaded, onError }: RoutePlannerPr
         mode: 'driving',
       });
       
-      console.log(`Received ${routes.length} route(s) from backend.`);
+      console.log(`Received ${routes.length} route(s) from Google Maps API.`);
       
-      // Add random but smooth gradient values to each route
-      const routesWithGradients = routes.map((route) => {
-        if (route.polyline) {
-          const values = generateSmoothGradientValues(route.polyline);
-          return { ...route, values };
-        }
-        return route;
-      });
-      
-      onRoutesLoaded(routesWithGradients);
+      // Routes already have values and conditions from getRoute()
+      // No need to regenerate - just pass them through
+      onRoutesLoaded(routes);
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Failed to fetch routes';
       console.error('Error fetching routes:', error);

@@ -3,6 +3,7 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import maplibregl from 'maplibre-gl';
 import 'maplibre-gl/dist/maplibre-gl.css';
+import Script from 'next/script';
 
 import { GOOGLE_API_KEY, HERE_API_KEY, MAPTILER_KEY, TOM_TOM_KEY } from '../lib/keys';
 
@@ -58,6 +59,7 @@ const AcciNetMap: React.FC = () => {
   const mapStyledRef = useRef(false);
 
   const [mapLoaded, setMapLoaded] = useState(false);
+  const [googleMapsLoaded, setGoogleMapsLoaded] = useState(false);
   const [mapCenter, setMapCenter] = useState({ lat: INITIAL_CENTER[1], lng: INITIAL_CENTER[0] });
   const [mapZoom, setMapZoom] = useState(INITIAL_ZOOM);
 
@@ -245,11 +247,11 @@ const AcciNetMap: React.FC = () => {
     const items = incoming.map((route, idx) => {
       const coords = normalizeCoords(route.coords);
       
-      // Use backend values if available, otherwise generate simulated probs
-      // Backend provides one value per coordinate, we need to map to segments
+      // Use route values if available (mocked from Google Maps API), otherwise generate simulated probs
+      // Values provide one value per coordinate, we need to map to segments for gradient visualization
       let probs: number[];
       if (route.values && route.values.length > 0) {
-        // Backend provides values for each coordinate
+        // Route provides values for each coordinate
         // Convert to segment-based probs for gradient visualization
         const segments = Math.max(10, Math.round(coords.length / 50));
         probs = Array.from({ length: segments }, (_, i) => {
@@ -257,7 +259,7 @@ const AcciNetMap: React.FC = () => {
           return route.values![Math.min(coordIdx, route.values!.length - 1)] || 0.5;
         });
       } else {
-        // Fallback to simulated probs if backend didn't provide values
+        // Fallback to simulated probs if values weren't provided
         probs = simulateProbs(coords);
       }
       
@@ -276,14 +278,23 @@ const AcciNetMap: React.FC = () => {
       } satisfies RouteItem;
     });
     
-    console.log(`[AcciNetMap] Processed ${items.length} real route(s)`);
+    console.log(`[AcciNetMap] Processed ${items.length} real route(s) before sorting`);
 
     // Sort routes by risk (lowest first)
     items.sort((a, b) => a.avgRisk - b.avgRisk);
+    
+    console.log(`[AcciNetMap] After sorting by risk:`, items.map((r, i) => ({
+      idx: i,
+      avgRisk: r.avgRisk.toFixed(3),
+      durationSec: r.durationSec,
+      distanceMeters: r.distanceMeters.toFixed(0)
+    })));
 
     const safest = indexOfMin(items.map((r) => r.avgRisk));
     const fastest = indexOfMin(items.map((r) => r.durationSec));
     const fuelSaver = indexOfMin(items.map((r) => r.distanceMeters));
+    
+    console.log(`[AcciNetMap] Indices - safest: ${safest}, fastest: ${fastest}, fuel: ${fuelSaver}`);
 
     setRoutes(items);
     setSafestIdx(safest);
@@ -292,6 +303,7 @@ const AcciNetMap: React.FC = () => {
 
     // Select all routes by default
     const allRouteIds = new Set(items.map((_, idx) => `route-${idx}`));
+    console.log(`[AcciNetMap] Selected route IDs by default:`, Array.from(allRouteIds));
     setSelectedRouteIds(allRouteIds);
 
     const map = mapRef.current;
@@ -315,21 +327,29 @@ const AcciNetMap: React.FC = () => {
   }, []);
 
   const gradientRoutes = useMemo(() => {
-    if (!mapLoaded || !mapRef.current || !routes.length) return [];
-    return routes
-      .map((route, idx) => {
-        let theme: RouteTheme = 'risky';
-        if (idx === safestIdx) theme = 'safe';
-        else if (idx === fastestIdx) theme = 'moderate';
-        return {
-          id: `route-${idx}`,
-          coords: route.coords,
-          probs: route.probs,
-          theme,
-          conditions: route.conditions,
-        };
-      })
-      .filter((route) => selectedRouteIds.has(route.id));
+    if (!mapLoaded || !mapRef.current || !routes.length) {
+      console.log(`[AcciNetMap] gradientRoutes: mapLoaded=${mapLoaded}, routes.length=${routes.length}, selectedRouteIds.size=${selectedRouteIds.size}`);
+      return [];
+    }
+    
+    const mapped = routes.map((route, idx) => {
+      let theme: RouteTheme = 'risky';
+      if (idx === safestIdx) theme = 'safe';
+      else if (idx === fastestIdx) theme = 'moderate';
+      const routeData = {
+        id: `route-${idx}`,
+        coords: route.coords,
+        probs: route.probs,
+        theme,
+        conditions: route.conditions,
+      };
+      console.log(`[AcciNetMap] Route ${idx}: id=${routeData.id}, theme=${theme}, coords=${route.coords.length}, probs=${route.probs.length}, selected=${selectedRouteIds.has(routeData.id)}`);
+      return routeData;
+    });
+    
+    const filtered = mapped.filter((route) => selectedRouteIds.has(route.id));
+    console.log(`[AcciNetMap] gradientRoutes: ${filtered.length} routes after filtering (total routes: ${routes.length}, selected IDs: ${Array.from(selectedRouteIds).join(', ')})`);
+    return filtered;
   }, [fastestIdx, mapLoaded, routes, safestIdx, selectedRouteIds]);
 
   const routeInfos = useMemo(() => {
@@ -516,24 +536,33 @@ const AcciNetMap: React.FC = () => {
   }, [routes]);
 
   return (
-    <div
-      style={{
-        position: 'relative',
-        height: '100vh',
-        width: '100%',
-      }}
-    >
-      <div ref={containerRef} style={{ position: 'absolute', inset: 0 }} />
+    <>
+      {/* Load Google Maps JavaScript API */}
+      <Script
+        src={`https://maps.googleapis.com/maps/api/js?key=${GOOGLE_API_KEY}&libraries=places`}
+        strategy="afterInteractive"
+        onLoad={() => setGoogleMapsLoaded(true)}
+        onError={(e) => console.error('Error loading Google Maps:', e)}
+      />
+      
+      <div
+        style={{
+          position: 'relative',
+          height: '100vh',
+          width: '100%',
+        }}
+      >
+        <div ref={containerRef} style={{ position: 'absolute', inset: 0 }} />
 
-      {mapLoaded && mapRef.current && (
-        <>
-          <RouteBox
-            map={mapRef.current}
-            googleKey={GOOGLE_API_KEY ?? ''}
-            maptilerKey={MAPTILER_KEY}
-            onRoutes={onRoutes}
-            onResetRoutes={resetRoutes}
-          />
+        {mapLoaded && mapRef.current && googleMapsLoaded && (
+          <>
+            <RouteBox
+              map={mapRef.current}
+              googleKey={GOOGLE_API_KEY ?? ''}
+              maptilerKey={MAPTILER_KEY}
+              onRoutes={onRoutes}
+              onResetRoutes={resetRoutes}
+            />
 
           <WeatherBox map={mapRef.current} googleKey={GOOGLE_API_KEY} />
 
@@ -672,24 +701,55 @@ const AcciNetMap: React.FC = () => {
           )}
         </>
       )}
-    </div>
+      </div>
+    </>
   );
 };
 
 export default AcciNetMap;
 
 async function loadMapStyle() {
-  console.log("ENV:", process.env.NEXT_PUBLIC_MAPTILER_API_KEY);
-  const styleURL = `https://api.maptiler.com/maps/streets-v2-dark/style.json?key=${MAPTILER_KEY}`;
-  const response = await fetch(styleURL);
-  // const text = await response.text();  
-  if (!response.ok) {
-    console.log(response)
-    throw new Error(`Failed to fetch MapTiler style (${response.status}). `);
-
+  // Use MapTiler if key is available, otherwise fallback to OpenStreetMap style
+  if (MAPTILER_KEY) {
+    try {
+      const styleURL = `https://api.maptiler.com/maps/streets-v2-dark/style.json?key=${MAPTILER_KEY}`;
+      const response = await fetch(styleURL);
+      if (response.ok) {
+        const style = await response.json();
+        console.log('[AcciNetMap] Loaded MapTiler style successfully');
+        return style;
+      } else {
+        console.warn(`[AcciNetMap] MapTiler style fetch failed (${response.status}), using fallback`);
+      }
+    } catch (error) {
+      console.warn('[AcciNetMap] Error loading MapTiler style, using fallback:', error);
+    }
+  } else {
+    console.warn('[AcciNetMap] MAPTILER_KEY not set, using OpenStreetMap fallback');
   }
-  const style = await response.json();
-  return style;
+  
+  // Fallback to OpenStreetMap style
+  return {
+    version: 8,
+    sources: {
+      'osm': {
+        type: 'raster',
+        tiles: ['https://tile.openstreetmap.org/{z}/{x}/{y}.png'],
+        tileSize: 256,
+        attribution: '© OpenStreetMap contributors'
+      }
+    },
+    layers: [
+      {
+        id: 'osm',
+        type: 'raster',
+        source: 'osm',
+        minzoom: 0,
+        maxzoom: 19
+      }
+    ],
+    glyphs: 'https://demotiles.maplibre.org/font/{fontstack}/{range}.pbf'
+  };
 }
 
 function simulateProbs(coords: [number, number][]): number[] {

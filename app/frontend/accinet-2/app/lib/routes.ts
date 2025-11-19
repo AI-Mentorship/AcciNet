@@ -1,4 +1,3 @@
-// routes.ts
 import polyline from '@mapbox/polyline';
 
 export type LatLng = { lat: number; lng: number };
@@ -37,8 +36,8 @@ export type GoogleRoute = {
   coords: [number, number][];
   durationSec: number;
   distanceMeters: number;
-  values?: number[]; // Risk values from backend (optional)
-  conditions?: Array<any>; // Condition data from backend (optional)
+  values?: number[]; // Risk values (mocked, optional)
+  conditions?: Array<any>; // Condition data (mocked, optional)
 };
 
 export async function fetchRoutesGoogle(
@@ -46,80 +45,73 @@ export async function fetchRoutesGoogle(
   destination: LatLng,
   _key: string
 ): Promise<GoogleRoute[]> {
-  // Call the backend directly instead of Next.js API route
-  const BACKEND_BASE = process.env.NEXT_PUBLIC_BACKEND_URL ?? 'http://127.0.0.1:8000';
-  
-  // Backend expects origin and destination as address strings or coordinates
   // Format coordinates as "lat,lng" strings
   const originStr = `${origin.lat},${origin.lng}`;
   const destStr = `${destination.lat},${destination.lng}`;
   
+  console.log(`[fetchRoutesGoogle] Calling API with:`, {
+    origin: originStr,
+    destination: destStr,
+    mode: 'driving'
+  });
+  
+  // Call our internal Next.js API route instead of calling Google Maps directly
   const params = new URLSearchParams({
     origin: originStr,
     destination: destStr,
     mode: 'driving',
   });
   
-  const res = await fetch(`${BACKEND_BASE}/routes?${params.toString()}`);
-  if (!res.ok) throw new Error(`routes HTTP ${res.status}`);
+  const res = await fetch(`/api/routes?${params.toString()}`);
   
-  const data = (await res.json()) as Array<{
-    polyline: string;
-    distance: string;
-    duration: string;
-    summary: string;
-    values?: number[]; // Risk values from backend
-    conditions?: Array<{
-      lat: number;
-      lon: number;
-      weathercode?: number;
-      temperature?: number;
-      road_type?: string;
-      road_name?: string;
-    }>;
-  }>;
+  if (!res.ok) {
+      const errorData = await res.json().catch(() => ({}));
+      throw new Error(errorData.error || `Server returned status ${res.status}`);
+  }
   
-  console.log(`[fetchRoutesGoogle] Backend returned ${Array.isArray(data) ? data.length : 0} route(s)`);
+  const routesData = await res.json();
   
-  if (!Array.isArray(data) || !data.length)
+  if (!routesData || routesData.length === 0) {
     throw new Error('No routes returned');
+  }
   
-  // Convert backend RouteDetails format to GoogleRoute format
-  // Need to decode polyline and parse distance/duration
-  const routes = data
-    .map((route) => {
-      const coords = polyline.decode(route.polyline) as [number, number][];
+  console.log(`[fetchRoutesGoogle] Internal API returned ${routesData.length} route(s)`);
+  
+  // Convert internal API format to GoogleRoute format expected by frontend components
+  const routes = routesData
+    .map((route: any, idx: number) => {
+      const encodedPolyline = route.polyline;
+      console.log(`[fetchRoutesGoogle] Processing route ${idx + 1}:`, {
+        hasPolyline: !!encodedPolyline,
+        polylineLength: encodedPolyline?.length,
+        hasDuration: !!route.durationValue,
+        hasDistance: !!route.distanceValue,
+      });
+      
+      const coords = polyline.decode(encodedPolyline) as [number, number][];
+      
       if (!coords || coords.length < 2) {
-        console.warn('[fetchRoutesGoogle] Invalid polyline, skipping route');
+        console.warn(`[fetchRoutesGoogle] Route ${idx + 1}: Invalid polyline, skipping route (coords.length=${coords?.length})`);
         return null;
       }
       
-      // Parse duration (e.g., "12 mins" -> seconds)
-      const durationMatch = route.duration.match(/(\d+(?:\.\d+)?)\s*(min|mins|hour|hours|hr|hrs)/i);
-      const durationValue = durationMatch ? parseFloat(durationMatch[1]) : 0;
-      const durationUnit = durationMatch?.[2]?.toLowerCase() || 'min';
-      const durationSec = durationUnit.includes('hour') || durationUnit.includes('hr')
-        ? durationValue * 3600
-        : durationValue * 60;
+      console.log(`[fetchRoutesGoogle] Route ${idx + 1}: Valid with ${coords.length} coordinates`);
       
-      // Parse distance (e.g., "5.2 mi" -> meters)
-      const distanceMatch = route.distance.match(/(\d+(?:\.\d+)?)\s*(mi|mile|miles|km|kilometer|kilometers)/i);
-      const distanceValue = distanceMatch ? parseFloat(distanceMatch[1]) : 0;
-      const distanceUnit = distanceMatch?.[2]?.toLowerCase() || 'mi';
-      const distanceMeters = distanceUnit.includes('km') || distanceUnit.includes('kilometer')
-        ? distanceValue * 1000
-        : distanceValue * 1609.34; // miles to meters
+      // Extract duration and distance 
+      // Note: route.durationValue and route.distanceValue are added in the API route
+      // If not available, fallback to parsing string or 0
+      const durationSec = route.durationValue || 0;
+      const distanceMeters = route.distanceValue || 0;
       
       return {
         coords,
         durationSec,
         distanceMeters,
-        // Store backend values and conditions for use in frontend
         values: route.values,
         conditions: route.conditions,
       };
     })
-    .filter((r) => r !== null && Array.isArray(r.coords) && r.coords.length > 1) as Array<{
+    .filter((r: any) => r !== null && Array.isArray(r.coords) && r.coords.length > 1) as Array<{
       coords: [number, number][];
       durationSec: number;
       distanceMeters: number;
@@ -130,5 +122,3 @@ export async function fetchRoutesGoogle(
   console.log(`[fetchRoutesGoogle] After processing: ${routes.length} valid route(s)`);
   return routes;
 }
-
-
