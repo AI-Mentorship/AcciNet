@@ -1,0 +1,43 @@
+# Python virtual environments
+venv/
+.venv/
+env/
+ENV/
+
+# Python bytecode and caches
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Testing / tooling caches
+.pytest_cache/
+.mypy_cache/
+coverage/
+htmlcov/
+
+# Environment files
+.env
+.env.*
+
+# Distribution / packaging
+build/
+dist/
+*.egg-info/
+pip-wheel-metadata/
+
+# IDE/editor directories
+.vscode/
+.idea/
+
+# Other
+*.log
+
+# Large data files
+data/crash_data_2021-2025.csv
+data/*.csv
+
+# Large GIS/shapefile data
+roads/
+roads/**/*.dbf
+roads/**/*.shp
+roads/**/*.shx

@@ -1,0 +1,17 @@
+data/final/preprocessed_data.csv filter=lfs diff=lfs merge=lfs -text
+data/final/true_preprocessed_data.csv filter=lfs diff=lfs merge=lfs -text
+data/processed/PotentialCSV.csv filter=lfs diff=lfs merge=lfs -text
+data/processed/crash_street_api_features.csv filter=lfs diff=lfs merge=lfs -text
+data/processed/encoded_data_binary_encoding.csv filter=lfs diff=lfs merge=lfs -text
+data/processed/preprocessed_data_no_api.csv filter=lfs diff=lfs merge=lfs -text
+data/processed/TxDOT_Functional_Classification.cpg filter=lfs diff=lfs merge=lfs -text
+data/processed/TxDOT_Functional_Classification.dbf filter=lfs diff=lfs merge=lfs -text
+data/processed/TxDOT_Functional_Classification.prj filter=lfs diff=lfs merge=lfs -text
+data/processed/TxDOT_Functional_Classification.shp filter=lfs diff=lfs merge=lfs -text
+data/processed/TxDOT_Functional_Classification.shx filter=lfs diff=lfs merge=lfs -text
+data/processed/TxDOT_Roadbed_Width.cpg filter=lfs diff=lfs merge=lfs -text
+data/processed/TxDOT_Roadbed_Width.dbf filter=lfs diff=lfs merge=lfs -text
+data/processed/TxDOT_Roadbed_Width.prj filter=lfs diff=lfs merge=lfs -text
+data/processed/TxDOT_Roadbed_Width.shp filter=lfs diff=lfs merge=lfs -text
+data/processed/TxDOT_Roadbed_Width.shp.sml filter=lfs diff=lfs merge=lfs -text
+data/processed/TxDOT_Roadbed_Width.shp.shx filter=lfs diff=lfs merge=lfs -text
